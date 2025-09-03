@@ -48,6 +48,10 @@
             <a href="index.html" class="text-blue-600 hover:text-blue-800 font-medium transition-colors">Voltar</a>
         </div>
         
+        <div class="mb-6 border-b border-gray-200 pb-4">
+            <h2 class="text-lg font-semibold text-gray-700">Número do Orçamento: <span id="orcamentoId" class="font-bold text-blue-600"></span></h2>
+        </div>
+
         <form id="orcamentoForm" class="space-y-6">
             <!-- Informações do Cliente -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-gray-200 pb-6">
@@ -70,22 +74,6 @@
                 <div class="col-span-1 md:col-span-2">
                     <label for="paymentTerms" class="block text-sm font-medium text-gray-700">Condições de Pagamento</label>
                     <textarea id="paymentTerms" name="paymentTerms" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"></textarea>
-                </div>
-            </div>
-
-            <!-- Logomarca -->
-            <div class="border-b border-gray-200 pb-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">Logomarca</h3>
-                <div class="flex items-center space-x-4 mb-4">
-                    <input type="checkbox" id="includeLogoCheckbox" class="rounded text-blue-600 focus:ring-blue-500">
-                    <label for="includeLogoCheckbox" class="text-sm font-medium text-gray-700">Incluir logomarca no PDF</label>
-                </div>
-                <div>
-                    <label for="logoFile" class="block text-sm font-medium text-gray-700">Carregar Logomarca (PNG/JPEG)</label>
-                    <input type="file" id="logoFile" accept=".png, .jpeg, .jpg" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                </div>
-                <div id="logoPreview" class="mt-4 hidden">
-                    <img id="logoPreviewImg" src="#" alt="Prévia da logomarca" class="w-32 h-32 object-contain rounded-md shadow">
                 </div>
             </div>
 
@@ -188,22 +176,19 @@
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
         let db, authInstance, userId;
-        let logoBase64 = null;
+        let orcamentoId;
 
         const orcamentoForm = document.getElementById('orcamentoForm');
         const itemsContainer = document.getElementById('itemsContainer');
         const addItemBtn = document.getElementById('addItemBtn');
         const generatePdfBtn = document.getElementById('generatePdfBtn');
         const totalValueSpan = document.getElementById('totalValue');
+        const orcamentoIdSpan = document.getElementById('orcamentoId');
         const saveSuccessModal = document.getElementById('save-success-modal');
         const pdfSuccessModal = document.getElementById('pdf-success-modal');
         const loadingModal = document.getElementById('loading-modal');
         const errorModal = document.getElementById('error-modal');
         const errorMessage = document.getElementById('error-message');
-        const logoFileEl = document.getElementById('logoFile');
-        const logoPreviewEl = document.getElementById('logoPreview');
-        const logoPreviewImg = document.getElementById('logoPreviewImg');
-        const includeLogoCheckbox = document.getElementById('includeLogoCheckbox');
 
         function showLoading() { loadingModal.classList.remove('hidden'); }
         function hideLoading() { loadingModal.classList.add('hidden'); }
@@ -245,6 +230,15 @@
                 console.error("Erro ao inicializar Firebase:", error);
                 showErrorModal('Erro ao inicializar o aplicativo. Por favor, recarregue a página.');
             }
+        }
+        
+        function generateOrcamentoId() {
+            const date = new Date();
+            const year = date.getFullYear().toString().slice(-2);
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const randomNum = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+            return `ORC-${year}${month}${day}-${randomNum}`;
         }
         
         function addItemRow() {
@@ -291,33 +285,7 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            if (data.logoBase64 && includeLogoCheckbox.checked) {
-                try {
-                    const img = new Image();
-                    img.onload = function() {
-                        const aspectRatio = img.width / img.height;
-                        const imgHeight = 20; // fixed height for now
-                        const imgWidth = imgHeight * aspectRatio;
-                        const xPos = (doc.internal.pageSize.getWidth() - imgWidth) / 2;
-                        doc.addImage(data.logoBase64, 'JPEG', xPos, 10, imgWidth, imgHeight);
-                        finalizePdf(doc, docId, data);
-                    };
-                    img.onerror = function() {
-                        showErrorModal("Erro ao carregar a imagem. Verifique o arquivo de logomarca.");
-                        hideLoading();
-                    };
-                    img.src = data.logoBase64;
-                } catch(e) {
-                    showErrorModal("Erro ao processar a logomarca para o PDF: " + e.message);
-                    hideLoading();
-                }
-            } else {
-                finalizePdf(doc, docId, data);
-            }
-        }
-        
-        function finalizePdf(doc, docId, data) {
-            const startY = data.logoBase64 ? 40 : 25;
+            const startY = 25;
 
             doc.setFontSize(22);
             doc.text("Orçamento de Serviço", 105, startY, null, null, "center");
@@ -377,30 +345,8 @@
 
         addItemBtn.addEventListener('click', addItemRow);
         
-        logoFileEl.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    logoBase64 = e.target.result;
-                    logoPreviewImg.src = logoBase64;
-                    logoPreviewEl.classList.remove('hidden');
-                };
-                reader.onerror = () => {
-                    showErrorModal("Erro ao ler o arquivo de imagem.");
-                    logoBase64 = null;
-                    logoPreviewEl.classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
-            } else {
-                logoBase64 = null;
-                logoPreviewEl.classList.add('hidden');
-            }
-        });
-
         generatePdfBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            
             showLoading();
 
             const clientName = document.getElementById('clientName').value;
@@ -425,11 +371,9 @@
                 validade: parseInt(validade),
                 paymentTerms,
                 items,
-                logoBase64: includeLogoCheckbox.checked ? logoBase64 : null,
             };
 
-            const docId = `temp-${Date.now()}`;
-            generatePdf(docId, orcamentoData);
+            generatePdf(orcamentoId, orcamentoData);
         });
 
         orcamentoForm.addEventListener('submit', async (e) => {
@@ -458,13 +402,13 @@
             });
 
             const orcamentoData = {
+                id: orcamentoId,
                 clientName,
                 clientEmail,
                 clientPhone,
                 validade: parseInt(validade),
                 paymentTerms,
                 items,
-                logoBase64: includeLogoCheckbox.checked ? logoBase64 : null,
                 timestamp: new Date(),
                 userId: userId,
                 type: 'orcamento'
@@ -488,6 +432,9 @@
             document.querySelectorAll('.item-row input').forEach(input => {
                 input.addEventListener('input', calculateTotal);
             });
+
+            orcamentoId = generateOrcamentoId();
+            orcamentoIdSpan.textContent = orcamentoId;
         });
     </script>
 </body>
