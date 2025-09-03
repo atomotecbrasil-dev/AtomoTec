@@ -151,6 +151,9 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
+        // Assegura que o jsPDF e autoTable estão disponíveis globalmente
+        const { jsPDF } = window.jspdf;
+        
         let db, authInstance, userId;
 
         // Variáveis globais fornecidas pelo ambiente. NÃO modifique-as.
@@ -258,7 +261,6 @@
 
         // --- Gerar PDF ---
         function generatePdf(data) {
-            const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
             // Título
