@@ -261,10 +261,6 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // Adicionar logo como marca d'água
-            const logoUrl = 'https://placehold.co/600x400/0d47a1/ffffff?text=AtomoTech+Logo';
-            doc.addImage(logoUrl, 'PNG', 45, 100, 120, 80, undefined, 'FAST');
-            
             // Título
             doc.setFontSize(22);
             doc.text("Orçamento de Serviço", 105, 25, null, null, "center");
