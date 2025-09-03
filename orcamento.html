@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Orçamento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .logo-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.1;
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .logo-container img {
+            width: 80%;
+            max-width: 800px;
+            height: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center py-10 min-h-screen relative">
+    <div class="logo-container hidden">
+        <img src="https://placehold.co/600x400/0d47a1/ffffff?text=AtomoTech+Logo" alt="Logomarca da AtomoTech">
+    </div>
+
+    <div class="w-full max-w-4xl bg-white rounded-lg shadow-xl p-8 md:p-12 z-10">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Novo Orçamento</h1>
+            <a href="index.html" class="text-blue-600 hover:text-blue-800 font-medium transition-colors">Voltar</a>
+        </div>
+        
+        <form id="orcamentoForm" class="space-y-6">
+            <!-- Informações do Cliente -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-gray-200 pb-6">
+                <div>
+                    <label for="clientName" class="block text-sm font-medium text-gray-700">Nome do Cliente</label>
+                    <input type="text" id="clientName" name="clientName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="clientEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="clientEmail" name="clientEmail" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="clientPhone" class="block text-sm font-medium text-gray-700">Telefone</label>
+                    <input type="tel" id="clientPhone" name="clientPhone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="orcamentoValidade" class="block text-sm font-medium text-gray-700">Validade (dias)</label>
+                    <input type="number" id="orcamentoValidade" name="orcamentoValidade" value="30" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div class="col-span-1 md:col-span-2">
+                    <label for="paymentTerms" class="block text-sm font-medium text-gray-700">Condições de Pagamento</label>
+                    <textarea id="paymentTerms" name="paymentTerms" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"></textarea>
+                </div>
+            </div>
+
+            <!-- Itens do Orçamento -->
+            <div class="border-b border-gray-200 pb-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Itens do Orçamento</h3>
+                <div id="itemsContainer" class="space-y-4">
+                    <!-- Item template -->
+                    <div class="item-row grid grid-cols-5 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700">Descrição</label>
+                            <input type="text" name="itemDescription" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Qtd</label>
+                            <input type="number" name="itemQuantity" value="1" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Valor Unit.</label>
+                            <input type="number" name="itemPrice" value="0.00" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="button" class="remove-item-btn px-4 py-2 bg-red-500 text-white rounded-md shadow-sm hover:bg-red-600 transition-colors">Remover</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button type="button" id="addItemBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md shadow-sm hover:bg-blue-600 transition-colors">Adicionar Item</button>
+                </div>
+            </div>
+
+            <!-- Total do Orçamento -->
+            <div class="flex justify-end items-center space-x-4">
+                <span class="text-xl font-bold text-gray-800">Total: R$ <span id="totalValue">0,00</span></span>
+            </div>
+
+            <!-- Botão de Ação -->
+            <div class="flex justify-end space-x-4 pt-6">
+                <button type="submit" id="saveAndGeneratePdfBtn" class="px-6 py-3 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 transition-colors font-semibold">
+                    Salvar & Gerar PDF
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Modal de Sucesso -->
+    <div id="success-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg text-center">
+            <i class="fa-solid fa-check-circle text-6xl text-green-500 mb-4"></i>
+            <h3 class="text-xl font-bold mb-2">Orçamento Salvo!</h3>
+            <p class="mb-4">O orçamento foi salvo com sucesso e o PDF foi gerado.</p>
+            <div class="flex justify-center space-x-4">
+                <button onclick="closeModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">OK</button>
+                <a id="download-link" href="#" class="px-4 py-2 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600">Download PDF</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Carregamento -->
+    <div id="loading-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg p-6 w-48 text-center shadow-lg">
+            <i class="fa-solid fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+            <p class="text-gray-700 font-medium">Gerando PDF...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        let db, authInstance, userId;
+        
+        // Configuração do Firebase com suas credenciais
+        const firebaseConfig = {
+            apiKey: "AIzaSyBD5NJXU1YBb1tbWAtaO8tyx21x5UwDs58",
+            authDomain: "atomotech-gestao.firebaseapp.com",
+            projectId: "atomotech-gestao",
+            storageBucket: "atomotech-gestao.firebasestorage.app",
+            messagingSenderId: "307660458127",
+            appId: "1:307660458127:web:853844133b6cf7c7e788fa",
+            measurementId: "G-WB5BZPR532"
+        };
+        const appId = firebaseConfig.projectId;
+
+        // --- Variáveis Globais ---
+        const orcamentoForm = document.getElementById('orcamentoForm');
+        const itemsContainer = document.getElementById('itemsContainer');
+        const addItemBtn = document.getElementById('addItemBtn');
+        const totalValueSpan = document.getElementById('totalValue');
+        const successModal = document.getElementById('success-modal');
+        const loadingModal = document.getElementById('loading-modal');
+
+        // --- Funções de Modal ---
+        function showLoading() { loadingModal.classList.remove('hidden'); }
+        function hideLoading() { loadingModal.classList.add('hidden'); }
+        function showSuccessModal() { successModal.classList.remove('hidden'); }
+        window.closeModal = () => { successModal.classList.add('hidden'); };
+
+        // --- Funções Firebase ---
+        function initializeFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                authInstance = getAuth(app);
+                
+                onAuthStateChanged(authInstance, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Usuário autenticado:", userId);
+                    } else {
+                         signInAnonymously(authInstance).then(() => {
+                            userId = authInstance.currentUser.uid;
+                            console.log("Usuário autenticado anonimamente:", userId);
+                        }).catch((error) => {
+                            console.error("Erro na autenticação anônima:", error);
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error("Erro ao inicializar Firebase:", error);
+            }
+        }
+
+        // --- Funções do Formulário ---
+        function addItemRow() {
+            const newItemRow = document.createElement('div');
+            newItemRow.className = 'item-row grid grid-cols-5 gap-4';
+            newItemRow.innerHTML = `
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 sr-only">Descrição</label>
+                    <input type="text" name="itemDescription" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Descrição">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 sr-only">Qtd</label>
+                    <input type="number" name="itemQuantity" value="1" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Qtd">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 sr-only">Valor Unit.</label>
+                    <input type="number" name="itemPrice" value="0.00" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Valor Unit.">
+                </div>
+                <div class="flex items-end">
+                    <button type="button" class="remove-item-btn px-4 py-2 bg-red-500 text-white rounded-md shadow-sm hover:bg-red-600 transition-colors text-sm">Remover</button>
+                </div>
+            `;
+            itemsContainer.appendChild(newItemRow);
+            newItemRow.querySelector('.remove-item-btn').addEventListener('click', () => {
+                newItemRow.remove();
+                calculateTotal();
+            });
+            newItemRow.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', calculateTotal);
+            });
+        }
+        
+        function calculateTotal() {
+            let total = 0;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const quantity = parseFloat(row.querySelector('[name="itemQuantity"]').value) || 0;
+                const price = parseFloat(row.querySelector('[name="itemPrice"]').value) || 0;
+                total += quantity * price;
+            });
+            totalValueSpan.textContent = total.toFixed(2).replace('.', ',');
+        }
+
+        // --- Gerar PDF ---
+        function generatePdf(docId, data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Adicionar logo como marca d'água
+            const logoUrl = 'https://placehold.co/600x400/0d47a1/ffffff?text=AtomoTech+Logo';
+            doc.addImage(logoUrl, 'PNG', 45, 100, 120, 80, undefined, 'FAST');
+            
+            // Título
+            doc.setFontSize(22);
+            doc.text("Orçamento de Serviço", 105, 25, null, null, "center");
+
+            // Informações do Orçamento
+            doc.setFontSize(12);
+            doc.text(`Orçamento #: ${docId}`, 20, 40);
+            doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 47);
+            doc.text(`Validade: ${data.validade} dias`, 20, 54);
+            doc.text(`Condições de Pagamento: ${data.paymentTerms || 'Não especificado'}`, 20, 61);
+
+            // Informações do Cliente
+            doc.setFontSize(16);
+            doc.text("Informações do Cliente", 20, 75);
+            doc.setFontSize(12);
+            doc.text(`Nome: ${data.clientName}`, 20, 85);
+            doc.text(`Email: ${data.clientEmail || 'N/A'}`, 20, 92);
+            doc.text(`Telefone: ${data.clientPhone || 'N/A'}`, 20, 99);
+            
+            // Tabela de Itens
+            const tableColumn = ["Descrição", "Qtd", "Valor Unit.", "Total"];
+            const tableRows = [];
+            let total = 0;
+            data.items.forEach(item => {
+                const itemTotal = item.quantity * item.price;
+                tableRows.push([
+                    item.description,
+                    item.quantity,
+                    `R$ ${item.price.toFixed(2).replace('.', ',')}`,
+                    `R$ ${itemTotal.toFixed(2).replace('.', ',')}`
+                ]);
+                total += itemTotal;
+            });
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 110,
+                theme: 'striped',
+                headStyles: { fillColor: [13, 71, 161] },
+                styles: { fontSize: 10, cellPadding: 2 },
+            });
+            
+            // Total e Assinatura
+            doc.setFontSize(14);
+            doc.text(`Total: R$ ${total.toFixed(2).replace('.', ',')}`, 170, doc.lastAutoTable.finalY + 10, null, null, "right");
+            
+            doc.setFontSize(10);
+            doc.text("__________________________________", 105, doc.lastAutoTable.finalY + 40, null, null, "center");
+            doc.text("Assinatura do Cliente", 105, doc.lastAutoTable.finalY + 45, null, null, "center");
+            
+            const pdfBlob = doc.output('blob');
+            const url = URL.createObjectURL(pdfBlob);
+            const downloadLink = document.getElementById('download-link');
+            downloadLink.href = url;
+            downloadLink.download = `orcamento-${docId}.pdf`;
+        }
+
+        // --- Event Listeners ---
+        addItemBtn.addEventListener('click', addItemRow);
+        orcamentoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!userId) {
+                alert('Aguarde a conexão com o Firebase ser estabelecida.');
+                return;
+            }
+
+            showLoading();
+
+            const clientName = document.getElementById('clientName').value;
+            const clientEmail = document.getElementById('clientEmail').value;
+            const clientPhone = document.getElementById('clientPhone').value;
+            const validade = document.getElementById('orcamentoValidade').value;
+            const paymentTerms = document.getElementById('paymentTerms').value;
+            
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                items.push({
+                    description: row.querySelector('[name="itemDescription"]').value,
+                    quantity: parseFloat(row.querySelector('[name="itemQuantity"]').value),
+                    price: parseFloat(row.querySelector('[name="itemPrice"]').value),
+                });
+            });
+
+            const orcamentoData = {
+                clientName,
+                clientEmail,
+                clientPhone,
+                validade: parseInt(validade),
+                paymentTerms,
+                items,
+                timestamp: new Date(),
+                userId: userId,
+                type: 'orcamento'
+            };
+
+            const collectionRef = collection(db, `artifacts/${appId}/public/data/orcamentos`);
+            try {
+                const docRef = await addDoc(collectionRef, orcamentoData);
+                hideLoading();
+                generatePdf(docRef.id, orcamentoData);
+                showSuccessModal();
+            } catch (error) {
+                hideLoading();
+                alert('Erro ao salvar o orçamento: ' + error.message);
+                console.error("Erro ao salvar o documento: ", error);
+            }
+        });
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeFirebase();
+            addItemRow(); // Adiciona uma linha de item por padrão
+            document.querySelectorAll('.item-row input').forEach(input => {
+                input.addEventListener('input', calculateTotal);
+            });
+        });
+
+    </script>
+</body>
+</html>

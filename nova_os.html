@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Ordem de Serviço</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .logo-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.1;
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .logo-container img {
+            width: 80%;
+            max-width: 800px;
+            height: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center py-10 min-h-screen relative">
+    <div class="logo-container hidden">
+        <img src="https://placehold.co/600x400/0d47a1/ffffff?text=AtomoTech+Logo" alt="Logomarca da AtomoTech">
+    </div>
+
+    <div class="w-full max-w-4xl bg-white rounded-lg shadow-xl p-8 md:p-12 z-10">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Nova Ordem de Serviço</h1>
+            <a href="index.html" class="text-blue-600 hover:text-blue-800 font-medium transition-colors">Voltar</a>
+        </div>
+        
+        <form id="osForm" class="space-y-6">
+            <!-- Informações do Cliente e OS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-gray-200 pb-6">
+                <div>
+                    <label for="clientName" class="block text-sm font-medium text-gray-700">Nome do Cliente</label>
+                    <input type="text" id="clientName" name="clientName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="clientPhone" class="block text-sm font-medium text-gray-700">Telefone</label>
+                    <input type="tel" id="clientPhone" name="clientPhone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="startDate" class="block text-sm font-medium text-gray-700">Data de Início</label>
+                    <input type="date" id="startDate" name="startDate" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="endDate" class="block text-sm font-medium text-gray-700">Data de Conclusão Estimada</label>
+                    <input type="date" id="endDate" name="endDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div class="col-span-1 md:col-span-2">
+                    <label for="osStatus" class="block text-sm font-medium text-gray-700">Status</label>
+                    <select id="osStatus" name="osStatus" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                        <option value="Em Andamento">Em Andamento</option>
+                        <option value="Concluído">Concluído</option>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Cancelado">Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-span-1 md:col-span-2">
+                    <label for="serviceDescription" class="block text-sm font-medium text-gray-700">Descrição do Serviço</label>
+                    <textarea id="serviceDescription" name="serviceDescription" rows="4" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"></textarea>
+                </div>
+            </div>
+
+            <!-- Botão de Ação -->
+            <div class="flex justify-end pt-6">
+                <button type="submit" id="saveOsBtn" class="px-6 py-3 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 transition-colors font-semibold">
+                    Salvar Ordem de Serviço
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Modal de Sucesso -->
+    <div id="success-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg text-center">
+            <i class="fa-solid fa-check-circle text-6xl text-green-500 mb-4"></i>
+            <h3 class="text-xl font-bold mb-2">Ordem de Serviço Salva!</h3>
+            <p class="mb-4">A ordem de serviço foi salva com sucesso.</p>
+            <div class="flex justify-center">
+                <button onclick="closeModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">Fechar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Carregamento -->
+    <div id="loading-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg p-6 w-48 text-center shadow-lg">
+            <i class="fa-solid fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+            <p class="text-gray-700 font-medium">Salvando OS...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        let db, authInstance, userId;
+        
+        // Configuração do Firebase com suas credenciais
+        const firebaseConfig = {
+            apiKey: "AIzaSyBD5NJXU1YBb1tbWAtaO8tyx21x5UwDs58",
+            authDomain: "atomotech-gestao.firebaseapp.com",
+            projectId: "atomotech-gestao",
+            storageBucket: "atomotech-gestao.firebasestorage.app",
+            messagingSenderId: "307660458127",
+            appId: "1:307660458127:web:853844133b6cf7c7e788fa",
+            measurementId: "G-WB5BZPR532"
+        };
+        const appId = firebaseConfig.projectId;
+
+        // --- Variáveis Globais ---
+        const osForm = document.getElementById('osForm');
+        const successModal = document.getElementById('success-modal');
+        const loadingModal = document.getElementById('loading-modal');
+
+        // --- Funções de Modal ---
+        function showLoading() { loadingModal.classList.remove('hidden'); }
+        function hideLoading() { loadingModal.classList.add('hidden'); }
+        function showSuccessModal() { successModal.classList.remove('hidden'); }
+        window.closeModal = () => { successModal.classList.add('hidden'); };
+
+        // --- Funções Firebase ---
+        function initializeFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                authInstance = getAuth(app);
+                
+                onAuthStateChanged(authInstance, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Usuário autenticado:", userId);
+                    } else {
+                         signInAnonymously(authInstance).then(() => {
+                            userId = authInstance.currentUser.uid;
+                            console.log("Usuário autenticado anonimamente:", userId);
+                        }).catch((error) => {
+                            console.error("Erro na autenticação anônima:", error);
+                        });
+                    }
+                });
+            } catch (error) {
+                console.error("Erro ao inicializar Firebase:", error);
+            }
+        }
+
+        // --- Event Listener ---
+        osForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!userId) {
+                alert('Aguarde a conexão com o Firebase ser estabelecida.');
+                return;
+            }
+
+            showLoading();
+
+            const clientName = document.getElementById('clientName').value;
+            const clientPhone = document.getElementById('clientPhone').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const osStatus = document.getElementById('osStatus').value;
+            const serviceDescription = document.getElementById('serviceDescription').value;
+            
+            const osData = {
+                clientName,
+                clientPhone,
+                startDate,
+                endDate,
+                osStatus,
+                serviceDescription,
+                timestamp: new Date(),
+                userId: userId,
+                type: 'ordem_servico'
+            };
+
+            const collectionRef = collection(db, `artifacts/${appId}/public/data/ordens_servico`);
+            try {
+                await addDoc(collectionRef, osData);
+                hideLoading();
+                showSuccessModal();
+                osForm.reset(); // Limpa o formulário após salvar
+            } catch (error) {
+                hideLoading();
+                alert('Erro ao salvar a Ordem de Serviço: ' + error.message);
+                console.error("Erro ao salvar o documento: ", error);
+            }
+        });
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeFirebase();
+        });
+
+    </script>
+</body>
+</html>
