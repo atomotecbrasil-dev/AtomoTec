@@ -3,337 +3,436 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Orçamento Profissional</title>
+    <title>Sistema de Orçamento</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Configuração do Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyBD5NJXU1YBb1tbWAtaO8tyx21x5UwDs58",
-            authDomain: "atomotech-gestao.firebaseapp.com",
-            projectId: "atomotech-gestao",
-            storageBucket: "atomotech-gestao.firebasestorage.app",
-            messagingSenderId: "307660458127",
-            appId: "1:307660458127:web:853844133b6cf7c7e788fa",
-            measurementId: "G-WB5BZPR532"
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        let userId = '';
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        async function signIn() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined') {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                userId = auth.currentUser?.uid || crypto.randomUUID();
-                document.getElementById('loading-indicator').classList.add('hidden');
-                document.getElementById('content').classList.remove('hidden');
-                console.log('Firebase auth successful. User ID:', userId);
-            } catch (error) {
-                console.error("Firebase auth error:", error);
-                alert("Erro ao conectar ao Firebase. Verifique a configuração e a conexão de rede.");
-            }
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .logo-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.1;
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            overflow: hidden;
         }
-        signIn();
-
-        window.showLoading = () => {
-            const loadingOverlay = document.getElementById('loading-overlay');
-            loadingOverlay.classList.remove('hidden');
-        };
-
-        window.hideLoading = () => {
-            const loadingOverlay = document.getElementById('loading-overlay');
-            loadingOverlay.classList.add('hidden');
-        };
-
-        window.getTodayDate = () => {
-            const today = new Date();
-            const day = String(today.getDate()).padStart(2, '0');
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const year = today.getFullYear();
-            return `${day}/${month}/${year}`;
-        };
-
-        window.addItem = () => {
-            const tableBody = document.getElementById('items-table-body');
-            const newRow = document.createElement('tr');
-            newRow.innerHTML = `
-                <td class="p-2 border border-gray-300">
-                    <input type="text" placeholder="Código" class="w-full bg-transparent outline-none code">
-                </td>
-                <td class="p-2 border border-gray-300">
-                    <input type="text" placeholder="Descrição" class="w-full bg-transparent outline-none description">
-                </td>
-                <td class="p-2 border border-gray-300">
-                    <input type="text" placeholder="Un." class="w-full bg-transparent outline-none unit">
-                </td>
-                <td class="p-2 border border-gray-300">
-                    <input type="number" step="0.01" value="0" min="0" class="w-full bg-transparent outline-none quantity">
-                </td>
-                <td class="p-2 border border-gray-300">
-                    <input type="number" step="0.01" value="0" min="0" class="w-full bg-transparent outline-none price" oninput="window.calculateTotal()">
-                </td>
-                <td class="p-2 border border-gray-300">
-                    <span class="total-item">0.00</span>
-                </td>
-                <td class="p-2 border-0 flex justify-center items-center">
-                    <button onclick="window.removeItem(this)" class="bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors duration-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-                </td>
-            `;
-            tableBody.appendChild(newRow);
-            window.calculateTotal();
-        };
-
-        window.removeItem = (button) => {
-            const row = button.closest('tr');
-            row.remove();
-            window.calculateTotal();
-        };
-
-        window.calculateTotal = () => {
-            const tableRows = document.querySelectorAll('#items-table-body tr');
-            let grandTotal = 0;
-            tableRows.forEach(row => {
-                const quantity = parseFloat(row.querySelector('.quantity').value) || 0;
-                const price = parseFloat(row.querySelector('.price').value) || 0;
-                const total = quantity * price;
-                row.querySelector('.total-item').textContent = total.toFixed(2);
-                grandTotal += total;
-            });
-            document.getElementById('total-value').textContent = `R$ ${grandTotal.toFixed(2)}`;
-        };
-
-        window.onload = () => {
-            window.calculateTotal();
-            document.getElementById('budget-date').value = window.getTodayDate();
-            window.addItem();
-        };
-        
-        window.saveAndGeneratePDF = async () => {
-            showLoading();
-            const customerName = document.getElementById('customer-name').value;
-            const customerEmail = document.getElementById('customer-email').value;
-            const customerPhone = document.getElementById('customer-phone').value;
-            const budgetValidity = document.getElementById('budget-validity').value;
-            const paymentTerms = document.getElementById('payment-terms').value;
-            const todayDate = getTodayDate();
-            
-            const items = [];
-            document.querySelectorAll('#items-table-body tr').forEach(row => {
-                items.push({
-                    code: row.querySelector('.code').value,
-                    description: row.querySelector('.description').value,
-                    unit: row.querySelector('.unit').value,
-                    quantity: parseFloat(row.querySelector('.quantity').value) || 0,
-                    price: parseFloat(row.querySelector('.price').value) || 0,
-                    total: parseFloat(row.querySelector('.total-item').textContent) || 0,
-                });
-            });
-
-            const totalValue = document.getElementById('total-value').textContent;
-            
-            // Gerar número do orçamento
-            const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const budgetNumber = `${todayDate.replace(/\//g, '-')}-${randomString}`;
-
-            const budgetData = {
-                budgetNumber,
-                customer: {
-                    name: customerName,
-                    email: customerEmail,
-                    phone: customerPhone
-                },
-                items,
-                totalValue,
-                date: todayDate,
-                validity: budgetValidity,
-                paymentTerms
-            };
-
-            try {
-                const docRef = doc(db, `artifacts/${appId}/users/${userId}/orcamentos/${budgetData.budgetNumber}`);
-                await setDoc(docRef, budgetData);
-                console.log("Documento salvo com sucesso!");
-                await generatePDF(budgetData);
-            } catch (e) {
-                console.error("Erro ao salvar o documento: ", e);
-                alert("Erro ao salvar o orçamento.");
-            } finally {
-                hideLoading();
-            }
-        };
-
-        window.generatePDF = async (data) => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            // Adicionar Logo como Marca D'Água
-            const logoUrl = 'https://atomotecbrasil-dev.github.io/AtomoTec/logo.png';
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.src = logoUrl;
-
-            await new Promise((resolve, reject) => {
-                img.onload = () => {
-                    const imgWidth = 80;
-                    const imgHeight = (img.height * imgWidth) / img.width;
-                    const xPos = (doc.internal.pageSize.getWidth() - imgWidth) / 2;
-                    const yPos = (doc.internal.pageSize.getHeight() - imgHeight) / 2;
-                    doc.addImage(img, 'PNG', xPos, yPos, imgWidth, imgHeight, undefined, 'FAST', 50);
-                    resolve();
-                };
-                img.onerror = reject;
-            });
-        
-            doc.setFontSize(18);
-            doc.text(`Orçamento #${data.budgetNumber}`, 14, 20);
-            doc.setFontSize(12);
-            doc.text(`Data: ${data.date}`, 14, 30);
-            doc.text(`Validade: ${data.validity}`, 14, 36);
-            doc.text(`Condições de Pagamento: ${data.paymentTerms}`, 14, 42);
-
-            doc.setFontSize(14);
-            doc.text('Informações do Cliente', 14, 55);
-            doc.setFontSize(12);
-            doc.text(`Nome: ${data.customer.name}`, 14, 65);
-            doc.text(`Email: ${data.customer.email}`, 14, 71);
-            doc.text(`Telefone: ${data.customer.phone}`, 14, 77);
-
-            const tableData = data.items.map(item => [item.code, item.description, item.unit, item.quantity, `R$ ${item.price.toFixed(2)}`, `R$ ${item.total.toFixed(2)}`]);
-            const columns = ["Código", "Descrição", "Unidade", "Qtd", "Valor Unit.", "Total"];
-        
-            doc.autoTable({
-                startY: 90,
-                head: [columns],
-                body: tableData,
-                theme: 'striped',
-                headStyles: { fillColor: [52, 73, 94] },
-                styles: { fontSize: 10, cellPadding: 2 },
-            });
-
-            const finalY = doc.autoTable.previous.finalY;
-            doc.setFontSize(14);
-            doc.text(`Total: ${data.totalValue}`, 170, finalY + 10, { align: 'right' });
-            
-            const filename = `Orcamento_${data.budgetNumber}.pdf`;
-            doc.save(filename);
-        };
-        
-        window.alert = (message) => {
-            const dialog = document.getElementById('custom-alert');
-            const messageEl = document.getElementById('custom-alert-message');
-            messageEl.textContent = message;
-            dialog.classList.remove('hidden');
-        };
-
-        window.closeAlert = () => {
-            const dialog = document.getElementById('custom-alert');
-            dialog.classList.add('hidden');
-        };
-
-    </script>
+        .logo-container img {
+            width: 80%;
+            max-width: 800px;
+            height: auto;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 font-sans flex flex-col items-center justify-center min-h-screen p-4">
-
-    <!-- Loading Indicator -->
-    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-            <p class="mt-4 text-gray-700">Aguarde...</p>
-        </div>
+<body class="bg-gray-100 flex flex-col items-center py-10 min-h-screen relative">
+    <div class="logo-container">
+        <img src="https://placehold.co/600x400/0d47a1/ffffff?text=AtomoTech+Logo" alt="Logomarca da AtomoTech">
     </div>
 
-    <!-- Custom Alert Modal -->
-    <div id="custom-alert" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
-            <p id="custom-alert-message" class="text-lg font-semibold mb-4 text-gray-700"></p>
-            <button onclick="window.closeAlert()" class="bg-blue-500 text-white px-6 py-2 rounded-full hover:bg-blue-600 transition-colors duration-200">OK</button>
+    <div class="w-full max-w-4xl bg-white rounded-lg shadow-xl p-8 md:p-12 z-10">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Novo Orçamento</h1>
+            <a href="index.html" class="text-blue-600 hover:text-blue-800 font-medium transition-colors">Voltar</a>
         </div>
-    </div>
-    
-    <main id="content" class="bg-white rounded-2xl shadow-2xl p-8 max-w-4xl w-full hidden">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Novo Orçamento</h1>
-        <form id="budget-form" class="space-y-6">
-            
-            <!-- Dados do Cliente -->
-            <div class="bg-gray-50 p-6 rounded-xl shadow-inner space-y-4">
-                <h2 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Informações do Cliente</h2>
-                <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
-                    <input type="text" id="customer-name" placeholder="Nome do Cliente" class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
-                    <input type="email" id="customer-email" placeholder="Email do Cliente" class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
-                    <input type="tel" id="customer-phone" placeholder="Telefone do Cliente" class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+        
+        <form id="orcamentoForm" class="space-y-6">
+            <!-- Informações do Cliente -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-gray-200 pb-6">
+                <div>
+                    <label for="clientName" class="block text-sm font-medium text-gray-700">Nome do Cliente</label>
+                    <input type="text" id="clientName" name="clientName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
                 </div>
-            </div>
-
-            <!-- Detalhes do Orçamento -->
-            <div class="bg-gray-50 p-6 rounded-xl shadow-inner space-y-4">
-                <h2 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Detalhes do Orçamento</h2>
-                <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
-                    <div class="flex-1">
-                        <label for="budget-date" class="block text-sm font-medium text-gray-600 mb-1">Data</label>
-                        <input type="text" id="budget-date" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-200 cursor-not-allowed" readonly>
-                    </div>
-                    <div class="flex-1">
-                        <label for="budget-validity" class="block text-sm font-medium text-gray-600 mb-1">Validade (dias)</label>
-                        <input type="number" id="budget-validity" value="30" min="1" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
-                    </div>
-                    <div class="flex-1">
-                        <label for="payment-terms" class="block text-sm font-medium text-gray-600 mb-1">Formas de Pagamento</label>
-                        <input type="text" id="payment-terms" placeholder="Ex: A Vista, 2x no Cartão" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
-                    </div>
+                <div>
+                    <label for="clientEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="clientEmail" name="clientEmail" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="clientPhone" class="block text-sm font-medium text-gray-700">Telefone</label>
+                    <input type="tel" id="clientPhone" name="clientPhone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="orcamentoValidade" class="block text-sm font-medium text-gray-700">Validade (dias)</label>
+                    <input type="number" id="orcamentoValidade" name="orcamentoValidade" value="30" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
+                </div>
+                <div class="col-span-1 md:col-span-2">
+                    <label for="paymentTerms" class="block text-sm font-medium text-gray-700">Condições de Pagamento</label>
+                    <textarea id="paymentTerms" name="paymentTerms" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"></textarea>
                 </div>
             </div>
 
             <!-- Itens do Orçamento -->
-            <div class="bg-gray-50 p-6 rounded-xl shadow-inner space-y-4">
-                <h2 class="text-xl font-semibold text-gray-700 border-b pb-2 mb-4">Itens do Orçamento</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full border-collapse">
-                        <thead>
-                            <tr class="bg-blue-600 text-white text-left text-sm">
-                                <th class="p-3 border-r border-blue-500 rounded-tl-lg">Código</th>
-                                <th class="p-3 border-r border-blue-500">Descrição</th>
-                                <th class="p-3 border-r border-blue-500">Un.</th>
-                                <th class="p-3 border-r border-blue-500">Qtd</th>
-                                <th class="p-3 border-r border-blue-500">Valor Unit.</th>
-                                <th class="p-3">Total</th>
-                                <th class="p-3 rounded-tr-lg"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="items-table-body">
-                            <!-- Items will be added here by JS -->
-                        </tbody>
-                    </table>
+            <div class="border-b border-gray-200 pb-6">
+                <h3 class="text-xl font-semibold text-gray-800 mb-4">Itens do Orçamento</h3>
+                <div id="itemsContainer" class="space-y-4">
+                    <!-- Item template -->
+                    <div class="item-row grid grid-cols-5 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 sr-only">Descrição</label>
+                            <input type="text" name="itemDescription" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Descrição">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 sr-only">Qtd</label>
+                            <input type="number" name="itemQuantity" value="1" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Qtd">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 sr-only">Valor Unit.</label>
+                            <input type="number" name="itemPrice" value="0.00" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Valor Unit.">
+                        </div>
+                        <div class="flex items-end">
+                            <button type="button" class="remove-item-btn px-4 py-2 bg-red-500 text-white rounded-md shadow-sm hover:bg-red-600 transition-colors text-sm">Remover</button>
+                        </div>
+                    </div>
                 </div>
-                <button type="button" onclick="window.addItem()" class="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition-colors duration-200 shadow-md">Adicionar Item</button>
+                <div class="mt-4">
+                    <button type="button" id="addItemBtn" class="px-4 py-2 bg-blue-500 text-white rounded-md shadow-sm hover:bg-blue-600 transition-colors">Adicionar Item</button>
+                </div>
             </div>
 
-            <!-- Total -->
-            <div class="flex justify-end items-center mt-6">
-                <span class="text-2xl font-bold text-gray-800">Total: <span id="total-value" class="ml-2">R$ 0.00</span></span>
+            <!-- Total do Orçamento -->
+            <div class="flex justify-end items-center space-x-4">
+                <span class="text-xl font-bold text-gray-800">Total: R$ <span id="totalValue">0,00</span></span>
             </div>
-            
+
             <!-- Botões de Ação -->
-            <div class="flex flex-col md:flex-row justify-center space-y-4 md:space-y-0 md:space-x-4 mt-8">
-                <button type="button" onclick="window.saveAndGeneratePDF()" class="bg-green-500 text-white px-8 py-3 rounded-full hover:bg-green-600 transition-colors duration-200 shadow-lg font-bold">Salvar & Gerar PDF</button>
+            <div class="flex justify-end space-x-4 pt-6">
+                <button type="button" id="saveDraftBtn" class="px-6 py-3 bg-gray-500 text-white rounded-lg shadow-lg hover:bg-gray-600 transition-colors font-semibold">
+                    Salvar Rascunho
+                </button>
+                <button type="submit" id="saveAndGeneratePdfBtn" class="px-6 py-3 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 transition-colors font-semibold">
+                    Salvar & Gerar PDF
+                </button>
             </div>
         </form>
-    </main>
+    </div>
+    
+    <!-- Modal de Sucesso -->
+    <div id="success-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg text-center">
+            <i class="fa-solid fa-check-circle text-6xl text-green-500 mb-4"></i>
+            <h3 class="text-xl font-bold mb-2">Orçamento Salvo!</h3>
+            <p class="mb-4">O orçamento foi salvo com sucesso e o PDF foi gerado.</p>
+            <div class="flex justify-center space-x-4">
+                <button onclick="closeModal('success-modal')" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">OK</button>
+                <a id="download-link" href="#" class="px-4 py-2 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600">Download PDF</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Carregamento -->
+    <div id="loading-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg p-6 w-48 text-center shadow-lg">
+            <i class="fa-solid fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+            <p id="loading-text" class="text-gray-700 font-medium">Carregando...</p>
+        </div>
+    </div>
+    
+    <!-- Modal de Erro -->
+    <div id="error-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg text-center">
+            <i class="fa-solid fa-exclamation-triangle text-6xl text-red-500 mb-4"></i>
+            <h3 class="text-xl font-bold mb-2">Erro!</h3>
+            <p id="error-message" class="mb-4 text-red-700"></p>
+            <button onclick="closeModal('error-modal')" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">OK</button>
+        </div>
+    </div>
 
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Variáveis globais fornecidas pela plataforma
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, authInstance, userId;
+        
+        // --- Variáveis Globais do DOM ---
+        const orcamentoForm = document.getElementById('orcamentoForm');
+        const itemsContainer = document.getElementById('itemsContainer');
+        const addItemBtn = document.getElementById('addItemBtn');
+        const saveDraftBtn = document.getElementById('saveDraftBtn');
+        const totalValueSpan = document.getElementById('totalValue');
+        const successModal = document.getElementById('success-modal');
+        const loadingModal = document.getElementById('loading-modal');
+        const errorModal = document.getElementById('error-modal');
+        const loadingText = document.getElementById('loading-text');
+        const errorMessage = document.getElementById('error-message');
+
+        // --- Funções de Modal ---
+        function showLoading(message = "Carregando...") {
+            loadingText.textContent = message;
+            loadingModal.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            loadingModal.classList.add('hidden');
+        }
+        
+        function showErrorModal(message) {
+            errorMessage.textContent = message;
+            errorModal.classList.remove('hidden');
+        }
+
+        function showSuccessModal(docId) {
+            const downloadLink = document.getElementById('download-link');
+            // Só mostra o link para download se um PDF foi gerado (ou seja, se a função foi chamada após o 'submit')
+            if (docId) {
+                downloadLink.classList.remove('hidden');
+            } else {
+                downloadLink.classList.add('hidden');
+            }
+            successModal.classList.remove('hidden');
+        }
+
+        window.closeModal = (id) => {
+            document.getElementById(id).classList.add('hidden');
+        };
+
+        // --- Funções Firebase ---
+        function initializeFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                authInstance = getAuth(app);
+                
+                onAuthStateChanged(authInstance, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Usuário autenticado:", userId);
+                        hideLoading();
+                    } else {
+                        // Tentar autenticação com o token customizado se disponível
+                        if (initialAuthToken) {
+                            try {
+                                await signInWithCustomToken(authInstance, initialAuthToken);
+                            } catch (error) {
+                                console.error("Erro na autenticação com token customizado:", error);
+                                await signInAnonymously(authInstance);
+                            }
+                        } else {
+                            await signInAnonymously(authInstance);
+                        }
+                    }
+                });
+            } catch (error) {
+                hideLoading();
+                showErrorModal("Erro ao inicializar Firebase: " + error.message);
+                console.error("Erro ao inicializar Firebase:", error);
+            }
+        }
+
+        // --- Funções do Formulário ---
+        function addItemRow() {
+            const newItemRow = document.createElement('div');
+            newItemRow.className = 'item-row grid grid-cols-5 gap-4';
+            newItemRow.innerHTML = `
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 sr-only">Descrição</label>
+                    <input type="text" name="itemDescription" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Descrição">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 sr-only">Qtd</label>
+                    <input type="number" name="itemQuantity" value="1" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Qtd">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 sr-only">Valor Unit.</label>
+                    <input type="number" name="itemPrice" value="0.00" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Valor Unit.">
+                </div>
+                <div class="flex items-end">
+                    <button type="button" class="remove-item-btn px-4 py-2 bg-red-500 text-white rounded-md shadow-sm hover:bg-red-600 transition-colors text-sm">Remover</button>
+                </div>
+            `;
+            itemsContainer.appendChild(newItemRow);
+            newItemRow.querySelector('.remove-item-btn').addEventListener('click', () => {
+                newItemRow.remove();
+                calculateTotal();
+            });
+            newItemRow.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', calculateTotal);
+            });
+        }
+        
+        function calculateTotal() {
+            let total = 0;
+            document.querySelectorAll('.item-row').forEach(row => {
+                const quantity = parseFloat(row.querySelector('[name="itemQuantity"]').value) || 0;
+                const price = parseFloat(row.querySelector('[name="itemPrice"]').value) || 0;
+                total += quantity * price;
+            });
+            totalValueSpan.textContent = total.toFixed(2).replace('.', ',');
+        }
+
+        function getOrcamentoData() {
+            const clientName = document.getElementById('clientName').value;
+            const clientEmail = document.getElementById('clientEmail').value;
+            const clientPhone = document.getElementById('clientPhone').value;
+            const validade = document.getElementById('orcamentoValidade').value;
+            const paymentTerms = document.getElementById('paymentTerms').value;
+            
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                items.push({
+                    description: row.querySelector('[name="itemDescription"]').value,
+                    quantity: parseFloat(row.querySelector('[name="itemQuantity"]').value),
+                    price: parseFloat(row.querySelector('[name="itemPrice"]').value),
+                });
+            });
+
+            return {
+                clientName,
+                clientEmail,
+                clientPhone,
+                validade: parseInt(validade),
+                paymentTerms,
+                items,
+                timestamp: new Date(),
+                userId: userId,
+                type: 'orcamento'
+            };
+        }
+
+        async function saveOrcamento() {
+            if (!userId) {
+                showErrorModal('Aguarde a conexão com o Firebase ser estabelecida.');
+                return;
+            }
+
+            showLoading("Salvando orçamento...");
+
+            const orcamentoData = getOrcamentoData();
+            const collectionRef = collection(db, `artifacts/${appId}/public/data/orcamentos`);
+            
+            try {
+                const docRef = await addDoc(collectionRef, orcamentoData);
+                hideLoading();
+                return docRef.id;
+            } catch (error) {
+                hideLoading();
+                showErrorModal('Erro ao salvar o orçamento: ' + error.message);
+                console.error("Erro ao salvar o documento: ", error);
+                return null;
+            }
+        }
+        
+        // --- Gerar PDF ---
+        function generatePdf(docId, data) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Adicionar logo como marca d'água
+            const logoUrl = 'https://placehold.co/600x400/0d47a1/ffffff?text=AtomoTech+Logo';
+            doc.addImage(logoUrl, 'PNG', 45, 100, 120, 80, undefined, 'FAST');
+            
+            // Título
+            doc.setFontSize(22);
+            doc.text("Orçamento de Serviço", 105, 25, null, null, "center");
+
+            // Informações do Orçamento
+            doc.setFontSize(12);
+            doc.text(`Orçamento #: ${docId}`, 20, 40);
+            doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 47);
+            doc.text(`Validade: ${data.validade} dias`, 20, 54);
+            doc.text(`Condições de Pagamento: ${data.paymentTerms || 'Não especificado'}`, 20, 61);
+
+            // Informações do Cliente
+            doc.setFontSize(16);
+            doc.text("Informações do Cliente", 20, 75);
+            doc.setFontSize(12);
+            doc.text(`Nome: ${data.clientName}`, 20, 85);
+            doc.text(`Email: ${data.clientEmail || 'N/A'}`, 20, 92);
+            doc.text(`Telefone: ${data.clientPhone || 'N/A'}`, 20, 99);
+            
+            // Tabela de Itens
+            const tableColumn = ["Descrição", "Qtd", "Valor Unit.", "Total"];
+            const tableRows = [];
+            let total = 0;
+            data.items.forEach(item => {
+                const itemTotal = item.quantity * item.price;
+                tableRows.push([
+                    item.description,
+                    item.quantity,
+                    `R$ ${item.price.toFixed(2).replace('.', ',')}`,
+                    `R$ ${itemTotal.toFixed(2).replace('.', ',')}`
+                ]);
+                total += itemTotal;
+            });
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 110,
+                theme: 'striped',
+                headStyles: { fillColor: [13, 71, 161] },
+                styles: { fontSize: 10, cellPadding: 2 },
+            });
+            
+            // Total e Assinatura
+            doc.setFontSize(14);
+            doc.text(`Total: R$ ${total.toFixed(2).replace('.', ',')}`, 170, doc.lastAutoTable.finalY + 10, null, null, "right");
+            
+            doc.setFontSize(10);
+            doc.text("__________________________________", 105, doc.lastAutoTable.finalY + 40, null, null, "center");
+            doc.text("Assinatura do Cliente", 105, doc.lastAutoTable.finalY + 45, null, null, "center");
+            
+            const pdfBlob = doc.output('blob');
+            const url = URL.createObjectURL(pdfBlob);
+            const downloadLink = document.getElementById('download-link');
+            downloadLink.href = url;
+            downloadLink.download = `orcamento-${docId}.pdf`;
+        }
+
+        // --- Event Listeners ---
+        addItemBtn.addEventListener('click', addItemRow);
+        
+        saveDraftBtn.addEventListener('click', async () => {
+            const docId = await saveOrcamento();
+            if (docId) {
+                // Modifica o modal de sucesso para mostrar que o rascunho foi salvo
+                document.querySelector('#success-modal h3').textContent = 'Rascunho Salvo!';
+                document.querySelector('#success-modal p').textContent = 'O rascunho foi salvo com sucesso!';
+                showSuccessModal();
+            }
+        });
+
+        orcamentoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const docId = await saveOrcamento();
+            if (docId) {
+                showLoading("Gerando PDF...");
+                const orcamentoData = getOrcamentoData();
+                generatePdf(docId, orcamentoData);
+                hideLoading();
+                // Restaura o modal para a mensagem padrão de sucesso
+                document.querySelector('#success-modal h3').textContent = 'Orçamento Salvo!';
+                document.querySelector('#success-modal p').textContent = 'O orçamento foi salvo com sucesso e o PDF foi gerado.';
+                showSuccessModal(docId);
+            }
+        });
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            showLoading("Conectando ao Firebase...");
+            initializeFirebase();
+            addItemRow(); // Adiciona uma linha de item por padrão
+            document.querySelectorAll('.item-row input').forEach(input => {
+                input.addEventListener('input', calculateTotal);
+            });
+        });
+
+    </script>
 </body>
 </html>
