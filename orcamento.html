@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Orçamento</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -38,7 +38,7 @@
 </head>
 <body class="bg-gray-100 flex flex-col items-center py-10 min-h-screen relative">
     <div class="logo-container hidden">
-        <img src="https://placehold.co/600x400/0d47a1/ffffff?text=AtomoTech+Logo" alt="Logomarca da AtomoTech">
+        <img id="pdf-logo" src="https://placehold.co/600x400/0d47a1/ffffff?text=AtomoTech+Logo" alt="Logomarca da AtomoTech">
     </div>
 
     <div class="w-full max-w-4xl bg-white rounded-lg shadow-xl p-8 md:p-12 z-10">
@@ -79,19 +79,19 @@
                     <!-- Item template -->
                     <div class="item-row grid grid-cols-5 gap-4">
                         <div class="col-span-2">
-                            <label class="block text-sm font-medium text-gray-700">Descrição</label>
-                            <input type="text" name="itemDescription" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <label class="block text-sm font-medium text-gray-700 sr-only">Descrição</label>
+                            <input type="text" name="itemDescription" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Descrição">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Qtd</label>
-                            <input type="number" name="itemQuantity" value="1" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <label class="block text-sm font-medium text-gray-700 sr-only">Qtd</label>
+                            <input type="number" name="itemQuantity" value="1" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Qtd">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Valor Unit.</label>
-                            <input type="number" name="itemPrice" value="0.00" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <label class="block text-sm font-medium text-gray-700 sr-only">Valor Unit.</label>
+                            <input type="number" name="itemPrice" value="0.00" min="0" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Valor Unit.">
                         </div>
                         <div class="flex items-end">
-                            <button type="button" class="remove-item-btn px-4 py-2 bg-red-500 text-white rounded-md shadow-sm hover:bg-red-600 transition-colors">Remover</button>
+                            <button type="button" class="remove-item-btn px-4 py-2 bg-red-500 text-white rounded-md shadow-sm hover:bg-red-600 transition-colors text-sm">Remover</button>
                         </div>
                     </div>
                 </div>
@@ -135,14 +135,24 @@
         </div>
     </div>
 
+    <!-- Modal de Erro -->
+    <div id="error-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg text-center">
+            <i class="fa-solid fa-times-circle text-6xl text-red-500 mb-4"></i>
+            <h3 class="text-xl font-bold mb-2">Erro de Conexão</h3>
+            <p id="error-message" class="mb-4">Não foi possível conectar ao sistema. Tente novamente.</p>
+            <button onclick="closeErrorModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">OK</button>
+        </div>
+    </div>
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         let db, authInstance, userId;
+        let authReady = false;
         
-        // Configuração do Firebase com suas credenciais
         const firebaseConfig = {
             apiKey: "AIzaSyBD5NJXU1YBb1tbWAtaO8tyx21x5UwDs58",
             authDomain: "atomotech-gestao.firebaseapp.com",
@@ -161,13 +171,20 @@
         const totalValueSpan = document.getElementById('totalValue');
         const successModal = document.getElementById('success-modal');
         const loadingModal = document.getElementById('loading-modal');
+        const errorModal = document.getElementById('error-modal');
+        const errorMessage = document.getElementById('error-message');
 
         // --- Funções de Modal ---
         function showLoading() { loadingModal.classList.remove('hidden'); }
         function hideLoading() { loadingModal.classList.add('hidden'); }
         function showSuccessModal() { successModal.classList.remove('hidden'); }
         window.closeModal = () => { successModal.classList.add('hidden'); };
-
+        function showErrorModal(message) {
+            errorMessage.textContent = message;
+            errorModal.classList.remove('hidden');
+        }
+        window.closeErrorModal = () => { errorModal.classList.add('hidden'); };
+        
         // --- Funções Firebase ---
         function initializeFirebase() {
             try {
@@ -176,20 +193,23 @@
                 authInstance = getAuth(app);
                 
                 onAuthStateChanged(authInstance, (user) => {
+                    authReady = true;
                     if (user) {
                         userId = user.uid;
                         console.log("Usuário autenticado:", userId);
                     } else {
-                         signInAnonymously(authInstance).then(() => {
+                        signInAnonymously(authInstance).then(() => {
                             userId = authInstance.currentUser.uid;
                             console.log("Usuário autenticado anonimamente:", userId);
                         }).catch((error) => {
                             console.error("Erro na autenticação anônima:", error);
+                            showErrorModal('Erro ao conectar com o Firebase. Por favor, verifique as configurações.');
                         });
                     }
                 });
             } catch (error) {
                 console.error("Erro ao inicializar Firebase:", error);
+                showErrorModal('Erro ao inicializar o Firebase. Verifique a configuração.');
             }
         }
 
@@ -235,13 +255,29 @@
         }
 
         // --- Gerar PDF ---
-        function generatePdf(docId, data) {
+        async function generatePdf(docId, data) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
+            // Converter a imagem do logo para base64
+            const logoUrl = 'https://placehold.co/600x400/0d47a1/ffffff?text=AtomoTech+Logo'; // Substitua pelo URL do seu logo
+            const logoImage = await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.onerror = () => reject(new Error('Falha ao carregar a imagem do logo.'));
+                img.src = logoUrl;
+            });
+
             // Adicionar logo como marca d'água
-            const logoUrl = 'https://placehold.co/600x400/0d47a1/ffffff?text=AtomoTech+Logo';
-            doc.addImage(logoUrl, 'PNG', 45, 100, 120, 80, undefined, 'FAST');
+            doc.addImage(logoImage, 'PNG', 45, 100, 120, 80, undefined, 'FAST');
             
             // Título
             doc.setFontSize(22);
@@ -306,8 +342,8 @@
         orcamentoForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            if (!userId) {
-                alert('Aguarde a conexão com o Firebase ser estabelecida.');
+            if (!authReady) {
+                showErrorModal('Aguarde a conexão com o Firebase ser estabelecida.');
                 return;
             }
 
@@ -344,11 +380,11 @@
             try {
                 const docRef = await addDoc(collectionRef, orcamentoData);
                 hideLoading();
-                generatePdf(docRef.id, orcamentoData);
+                await generatePdf(docRef.id, orcamentoData);
                 showSuccessModal();
             } catch (error) {
                 hideLoading();
-                alert('Erro ao salvar o orçamento: ' + error.message);
+                showErrorModal('Erro ao salvar o orçamento: ' + error.message);
                 console.error("Erro ao salvar o documento: ", error);
             }
         });
