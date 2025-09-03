@@ -49,7 +49,7 @@
         </div>
         
         <div class="mb-6 border-b border-gray-200 pb-4">
-            <h2 class="text-lg font-semibold text-gray-700">Número do Orçamento: <span id="orcamentoId" class="font-bold text-blue-600"></span></h2>
+            <h2 class="text-lg font-semibold text-gray-700">Orçamento: <span id="orcamentoId" class="font-bold text-blue-600"></span></h2>
         </div>
 
         <form id="orcamentoForm" class="space-y-6">
@@ -172,7 +172,7 @@
         import { getFirestore, collection, addDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config !== '' ? JSON.parse(__firebase_config) : null;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
         let db, authInstance, userId;
@@ -202,6 +202,10 @@
 
         async function initializeFirebase() {
             try {
+                if (!firebaseConfig || Object.keys(firebaseConfig).length === 0) {
+                    throw new Error("A configuração do Firebase não foi fornecida.");
+                }
+
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 authInstance = getAuth(app);
@@ -228,7 +232,7 @@
                 });
             } catch (error) {
                 console.error("Erro ao inicializar Firebase:", error);
-                showErrorModal('Erro ao inicializar o aplicativo. Por favor, recarregue a página.');
+                showErrorModal('Erro ao inicializar o aplicativo: ' + error.message);
             }
         }
         
@@ -281,90 +285,96 @@
             totalValueSpan.textContent = total.toFixed(2).replace('.', ',');
         }
 
-        const logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAD+0N6WAAAAn1BMVEUAAADg4ODDw8Pg4ODAwMDAwMDAwMDExMTg4ODg4ODg4ODAwMDExMTExMTDw8Pg4ODAwMDDw8Ph4eHg4ODAwMDDw8Pg4ODDw8PExMTAwMDExMTExMTg4ODAwMDAwMDExMTExMTg4ODAwMDDw8Pg4ODAwMDExMTDw8PExMTExMTDw8Pg4ODExMTDw8PExMTExMTDw8Pg4OA/QzUoAAAAO3RSTlMAAQIDBAUGBwsLDRARFBUXGBkbGxwcHh8gISIjJCYnKCkqLS4vMDEyMzQ1Nzg5Ojo8Pj9FR0hTU1VdYWZ2eXp9f4IqBQAAA/pJREFUeNrt2uV62kAYx/H0y2Q6pLPTkCY23G7T3/83qK/j7vYQ1H4w+v4w/k/G17tEaZrGAAAAAElFTkSuQmCC'; // Logomarca da AtomoTech em base64
+        // Base64 da imagem do logo fornecida pelo usuário
+        const logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAD+0N6WAAAAn1BMVEUAAADg4ODDw8Pg4ODAwMDAwMDAwMDExMTg4ODg4ODg4ODAwMDExMTExMTDw8Pg4ODAwMDDw8Ph4eHg4ODAwMDDw8Pg4ODDw8PExMTAwMDExMTExMTg4ODAwMDAwMDExMTExMTg4ODAwMDDw8Pg4ODAwMDExMTDw8PExMTExMTDw8Pg4OA/QzUoAAAAO3RSTlMAAQIDBAUGBwsLDRARFBUXGBkbGxwcHh8gISIjJCYnKCkqLS4vMDEyMzQ1Nzg5Ojo8Pj9FR0hTU1VdYWZ2eXp9f4IqBQAAA/pJREFUeNrt2uV62kAxwPFzJ33g8y7o/Qc5rL7d0i+w/2dY1tG0aBoAAAAAElFTkSuQmCC';
 
-        function generatePdf(docId, data) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            const startY = 25;
+        async function generatePdf(docId, data) {
+            showLoading();
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                const startY = 25;
 
-            // Adiciona a logomarca no canto superior esquerdo
-            const logoWidth = 35; // Largura da imagem em mm
-            const logoHeight = 35; // Altura da imagem em mm
-            doc.addImage(logoBase64, 'PNG', 15, 15, logoWidth, logoHeight);
+                // Adiciona a logomarca no canto superior esquerdo
+                const logoWidth = 35; 
+                const logoHeight = 35; 
+                doc.addImage(logoBase64, 'PNG', 15, 15, logoWidth, logoHeight);
 
-            // Cabeçalho e informações da empresa
-            doc.setFontSize(22);
-            doc.text("Orçamento", 105, startY, null, null, "center");
-            
-            doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.text("AtomoTech", 105, startY + 5, null, null, "center");
-            doc.text("Soluções em TI", 105, startY + 9, null, null, "center");
-            doc.text("CNPJ: 00.000.000/0001-00", 105, startY + 13, null, null, "center");
-            doc.text("Contato: (11) 99999-9999", 105, startY + 17, null, null, "center");
-            doc.setTextColor(0);
+                // Cabeçalho e informações da empresa
+                doc.setFontSize(22);
+                doc.text("Orçamento", 105, startY, null, null, "center");
+                
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text("AtomoTech", 105, startY + 5, null, null, "center");
+                doc.text("Soluções em TI", 105, startY + 9, null, null, "center");
+                doc.text("CNPJ: 00.000.000/0001-00", 105, startY + 13, null, null, "center");
+                doc.text("Contato: (11) 99999-9999", 105, startY + 17, null, null, "center");
+                doc.setTextColor(0);
 
-            doc.setFontSize(12);
-            doc.text(`Orçamento: ${docId}`, 20, startY + 30);
-            doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, startY + 37);
-            doc.text(`Validade: ${data.validade} dias`, 20, startY + 44);
-            doc.text(`Condições de Pagamento: ${data.paymentTerms || 'Não especificado'}`, 20, startY + 51);
+                doc.setFontSize(12);
+                doc.text(`Orçamento: ${docId}`, 20, startY + 30);
+                doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, startY + 37);
+                doc.text(`Validade: ${data.validade} dias`, 20, startY + 44);
+                doc.text(`Condições de Pagamento: ${data.paymentTerms || 'Não especificado'}`, 20, startY + 51);
 
-            doc.setFontSize(16);
-            doc.text("Informações do Cliente", 20, startY + 65);
-            doc.setFontSize(12);
-            doc.text(`Nome: ${data.clientName}`, 20, startY + 75);
-            doc.text(`Email: ${data.clientEmail || 'N/A'}`, 20, startY + 82);
-            doc.text(`Telefone: ${data.clientPhone || 'N/A'}`, 20, startY + 89);
-            
-            const tableColumn = ["Descrição", "Qtd", "Valor Unit.", "Total"];
-            const tableRows = [];
-            let total = 0;
-            data.items.forEach(item => {
-                const itemTotal = item.quantity * item.price;
-                tableRows.push([
-                    item.description,
-                    item.quantity,
-                    `R$ ${item.price.toFixed(2).replace('.', ',')}`,
-                    `R$ ${itemTotal.toFixed(2).replace('.', ',')}`
-                ]);
-                total += itemTotal;
-            });
+                doc.setFontSize(16);
+                doc.text("Informações do Cliente", 20, startY + 65);
+                doc.setFontSize(12);
+                doc.text(`Nome: ${data.clientName}`, 20, startY + 75);
+                doc.text(`Email: ${data.clientEmail || 'N/A'}`, 20, startY + 82);
+                doc.text(`Telefone: ${data.clientPhone || 'N/A'}`, 20, startY + 89);
+                
+                const tableColumn = ["Descrição", "Qtd", "Valor Unit.", "Total"];
+                const tableRows = [];
+                let total = 0;
+                data.items.forEach(item => {
+                    const itemTotal = item.quantity * item.price;
+                    tableRows.push([
+                        item.description,
+                        item.quantity,
+                        `R$ ${item.price.toFixed(2).replace('.', ',')}`,
+                        `R$ ${itemTotal.toFixed(2).replace('.', ',')}`
+                    ]);
+                    total += itemTotal;
+                });
 
-            doc.autoTable({
-                head: [tableColumn],
-                body: tableRows,
-                startY: startY + 100,
-                theme: 'striped',
-                headStyles: { fillColor: [13, 71, 161] },
-                styles: { fontSize: 10, cellPadding: 2 },
-            });
-            
-            doc.setFontSize(14);
-            doc.text(`Total: R$ ${total.toFixed(2).replace('.', ',')}`, 170, doc.lastAutoTable.finalY + 10, null, null, "right");
-            
-            doc.setFontSize(10);
-            doc.text("__________________________________", 105, doc.lastAutoTable.finalY + 40, null, null, "center");
-            doc.text("Assinatura do Cliente", 105, doc.lastAutoTable.finalY + 45, null, null, "center");
-            
-            const pdfBlob = doc.output('blob');
-            const url = URL.createObjectURL(pdfBlob);
-            const downloadLink = document.getElementById('download-link');
-            downloadLink.href = url;
-            downloadLink.download = `orcamento-${docId}.pdf`;
-            
-            hideLoading();
-            pdfSuccessModal.classList.remove('hidden');
+                doc.autoTable({
+                    head: [tableColumn],
+                    body: tableRows,
+                    startY: startY + 100,
+                    theme: 'striped',
+                    headStyles: { fillColor: [13, 71, 161] },
+                    styles: { fontSize: 10, cellPadding: 2 },
+                });
+                
+                doc.setFontSize(14);
+                doc.text(`Total: R$ ${total.toFixed(2).replace('.', ',')}`, 170, doc.lastAutoTable.finalY + 10, null, null, "right");
+                
+                doc.setFontSize(10);
+                doc.text("__________________________________", 105, doc.lastAutoTable.finalY + 40, null, null, "center");
+                doc.text("Assinatura do Cliente", 105, doc.lastAutoTable.finalY + 45, null, null, "center");
+                
+                const pdfBlob = doc.output('blob');
+                const url = URL.createObjectURL(pdfBlob);
+                const downloadLink = document.getElementById('download-link');
+                downloadLink.href = url;
+                downloadLink.download = `orcamento-${docId}.pdf`;
+                
+                hideLoading();
+                pdfSuccessModal.classList.remove('hidden');
+            } catch (error) {
+                console.error("Erro ao gerar o PDF:", error);
+                hideLoading();
+                showErrorModal('Erro ao gerar o PDF. Verifique se todos os campos estão preenchidos.');
+            }
         }
 
         addItemBtn.addEventListener('click', addItemRow);
         
         generatePdfBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            showLoading();
-
             const clientName = document.getElementById('clientName').value;
             const clientEmail = document.getElementById('clientEmail').value;
             const clientPhone = document.getElementById('clientPhone').value;
