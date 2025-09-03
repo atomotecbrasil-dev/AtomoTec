@@ -141,7 +141,7 @@
             <h3 class="text-xl font-bold mb-2">PDF Gerado!</h3>
             <p class="mb-4">O PDF foi gerado com sucesso. Clique no botão abaixo para fazer o download.</p>
             <div class="flex justify-center">
-                <a id="download-link" href="#" class="px-4 py-2 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600">Download PDF</a>
+                <a id="download-link" href="#" onclick="closePdfModal()" class="px-4 py-2 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600">Download PDF</a>
             </div>
         </div>
     </div>
@@ -281,27 +281,43 @@
             totalValueSpan.textContent = total.toFixed(2).replace('.', ',');
         }
 
+        const logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAD+0N6WAAAAn1BMVEUAAADg4ODDw8Pg4ODAwMDAwMDAwMDExMTg4ODg4ODg4ODAwMDExMTExMTDw8Pg4ODAwMDDw8Ph4eHg4ODAwMDDw8Pg4ODDw8PExMTAwMDExMTExMTg4ODAwMDAwMDExMTExMTg4ODAwMDDw8Pg4ODAwMDExMTDw8PExMTExMTDw8Pg4ODExMTDw8PExMTExMTDw8Pg4OA/QzUoAAAAO3RSTlMAAQIDBAUGBwsLDRARFBUXGBkbGxwcHh8gISIjJCYnKCkqLS4vMDEyMzQ1Nzg5Ojo8Pj9FR0hTU1VdYWZ2eXp9f4IqBQAAA/pJREFUeNrt2uV62kAYx/H0y2Q6pLPTkCY23G7T3/83qK/j7vYQ1H4w+v4w/k/G17tEaZrGAAAAAElFTkSuQmCC'; // Logomarca da AtomoTech em base64
+
         function generatePdf(docId, data) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
             const startY = 25;
 
+            // Adiciona a logomarca no canto superior esquerdo
+            const logoWidth = 35; // Largura da imagem em mm
+            const logoHeight = 35; // Altura da imagem em mm
+            doc.addImage(logoBase64, 'PNG', 15, 15, logoWidth, logoHeight);
+
+            // Cabeçalho e informações da empresa
             doc.setFontSize(22);
-            doc.text("Orçamento de Serviço", 105, startY, null, null, "center");
+            doc.text("Orçamento", 105, startY, null, null, "center");
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text("AtomoTech", 105, startY + 5, null, null, "center");
+            doc.text("Soluções em TI", 105, startY + 9, null, null, "center");
+            doc.text("CNPJ: 00.000.000/0001-00", 105, startY + 13, null, null, "center");
+            doc.text("Contato: (11) 99999-9999", 105, startY + 17, null, null, "center");
+            doc.setTextColor(0);
 
             doc.setFontSize(12);
-            doc.text(`Orçamento #: ${docId}`, 20, startY + 15);
-            doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, startY + 22);
-            doc.text(`Validade: ${data.validade} dias`, 20, startY + 29);
-            doc.text(`Condições de Pagamento: ${data.paymentTerms || 'Não especificado'}`, 20, startY + 36);
+            doc.text(`Orçamento: ${docId}`, 20, startY + 30);
+            doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, startY + 37);
+            doc.text(`Validade: ${data.validade} dias`, 20, startY + 44);
+            doc.text(`Condições de Pagamento: ${data.paymentTerms || 'Não especificado'}`, 20, startY + 51);
 
             doc.setFontSize(16);
-            doc.text("Informações do Cliente", 20, startY + 50);
+            doc.text("Informações do Cliente", 20, startY + 65);
             doc.setFontSize(12);
-            doc.text(`Nome: ${data.clientName}`, 20, startY + 60);
-            doc.text(`Email: ${data.clientEmail || 'N/A'}`, 20, startY + 67);
-            doc.text(`Telefone: ${data.clientPhone || 'N/A'}`, 20, startY + 74);
+            doc.text(`Nome: ${data.clientName}`, 20, startY + 75);
+            doc.text(`Email: ${data.clientEmail || 'N/A'}`, 20, startY + 82);
+            doc.text(`Telefone: ${data.clientPhone || 'N/A'}`, 20, startY + 89);
             
             const tableColumn = ["Descrição", "Qtd", "Valor Unit.", "Total"];
             const tableRows = [];
@@ -320,7 +336,7 @@
             doc.autoTable({
                 head: [tableColumn],
                 body: tableRows,
-                startY: startY + 85,
+                startY: startY + 100,
                 theme: 'striped',
                 headStyles: { fillColor: [13, 71, 161] },
                 styles: { fontSize: 10, cellPadding: 2 },
