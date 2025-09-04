@@ -43,7 +43,7 @@
             <!-- Logo e Nome da Empresa -->
             <div class="flex items-center">
                 <img src="logo.png" alt="AtomoTech Logo" class="h-8 mr-2">
-                <h1 class="text-3xl font-bold">AtomoTech01</h1>
+                <h1 class="text-3xl font-bold">AtomoTech00</h1>
             </div>
             
             <div class="flex items-center space-x-4">
@@ -220,7 +220,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, query, onSnapshot, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         let db, authInstance;
         let userId = null;
@@ -343,6 +343,49 @@
             } catch (error) {
                 console.error("Erro ao salvar o documento:", error);
                 showMessage('Erro', 'Não foi possível salvar as alterações.');
+            }
+        }
+        
+        async function deleteDocument(docId) {
+            if (!docId || !userId) {
+                showMessage('Erro', 'Não foi possível deletar o documento.');
+                return;
+            }
+
+            const confirmDeletion = await new Promise(resolve => {
+                const confirmModal = document.createElement('div');
+                confirmModal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50';
+                confirmModal.innerHTML = `
+                    <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">
+                        <h3 class="text-lg font-bold mb-2">Confirmar Exclusão</h3>
+                        <p class="mb-4">Tem certeza que deseja deletar este documento?</p>
+                        <div class="flex justify-end space-x-2">
+                            <button id="confirm-yes" class="px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700">Sim</button>
+                            <button id="confirm-no" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg shadow hover:bg-gray-400">Não</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(confirmModal);
+
+                document.getElementById('confirm-yes').onclick = () => {
+                    document.body.removeChild(confirmModal);
+                    resolve(true);
+                };
+                document.getElementById('confirm-no').onclick = () => {
+                    document.body.removeChild(confirmModal);
+                    resolve(false);
+                };
+            });
+
+            if (confirmDeletion) {
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/${activeCollection}`, docId);
+                try {
+                    await deleteDoc(docRef);
+                    showMessage('Sucesso', 'Documento deletado com sucesso!');
+                } catch (error) {
+                    console.error("Erro ao deletar o documento:", error);
+                    showMessage('Erro', 'Não foi possível deletar o documento.');
+                }
             }
         }
 
@@ -532,6 +575,9 @@
                         <button onclick="deleteDocument('${doc.id}')" class="text-red-600 hover:text-red-900">
                             <i class="fas fa-trash-alt"></i>
                         </button>
+                        <button onclick="generatePdf('${doc.id}', '${activeCollection}')" class="text-blue-600 hover:text-blue-900">
+                            <i class="fas fa-file-pdf"></i>
+                        </button>
                     </td>
                 `;
                 listElement.appendChild(tr);
@@ -604,13 +650,25 @@
             }
         }
         
+        // --- Funções para gerar PDF diretamente da tabela ---
+        async function generatePdf(docId, collectionName) {
+            const docData = currentDocuments.find(d => d.id === docId);
+            if (!docData) {
+                showMessage('Erro', 'Documento não encontrado para gerar PDF.');
+                return;
+            }
+            await generatePdfFromData(docData, docId, collectionName);
+        }
+        
         // --- Expor funções para o escopo global ---
         window.closeModal = closeModal;
         window.openEditModal = openEditModal;
         window.closeEditModal = closeEditModal;
         window.addEditItem = addEditItem;
         window.saveDocument = saveDocument;
+        window.deleteDocument = deleteDocument;
         window.generatePdfAndClose = generatePdfAndClose;
+        window.generatePdf = generatePdf; // Expondo a nova função
         window.applyFilters = applyFilters;
         window.resetFilters = resetFilters;
         window.toggleDebugOutput = toggleDebugOutput;
