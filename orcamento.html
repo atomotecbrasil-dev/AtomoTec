@@ -175,6 +175,8 @@
         const saveOnlyBtn = document.getElementById('saveOnlyBtn');
         const generatePdfBtn = document.getElementById('generatePdfBtn');
         const connectionStatusEl = document.getElementById('connectionStatus');
+        const numeroOrcamentoInput = document.getElementById('numeroOrcamento');
+        const orcamentoDateInput = document.getElementById('orcamentoDate');
 
         // --- Funções de Modal ---
         function showLoading() { loadingModal.classList.remove('hidden'); }
@@ -350,13 +352,28 @@
         
         // --- Função para Salvar ou Salvar e Gerar PDF ---
         async function handleSaveAndGenerate(generatePdfFlag) {
-            showLoading();
+            if (!userId) {
+                showSuccessModal('Aviso', 'Aguarde a conexão com o banco de dados.', false);
+                return;
+            }
 
-            const numeroOrcamento = document.getElementById('numeroOrcamento').value;
+            showLoading();
+            
+            // Gerar um número de orçamento único a cada salvamento
+            const now = new Date();
+            const year = String(now.getFullYear()).slice(-2);
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const newOrcamentoNumber = `ORC-${year}${month}${day}-${hours}${minutes}${seconds}`;
+            numeroOrcamentoInput.value = newOrcamentoNumber;
+
             const clientName = document.getElementById('clientName').value;
             const clientEmail = document.getElementById('clientEmail').value;
             const clientPhone = document.getElementById('clientPhone').value;
-            const dataOrcamento = document.getElementById('orcamentoDate').value;
+            const dataOrcamento = orcamentoDateInput.value;
             const validade = document.getElementById('orcamentoValidade').value;
             const paymentTerms = document.getElementById('paymentTerms').value;
             
@@ -370,7 +387,7 @@
             });
 
             const orcamentoData = {
-                numeroOrcamento,
+                numeroOrcamento: newOrcamentoNumber,
                 clientName,
                 clientEmail,
                 clientPhone,
@@ -417,12 +434,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             initializeFirebase();
             addItemRow(); // Adiciona uma linha de item por padrão
-            document.getElementById('numeroOrcamento').value = 'ORC-250903-4595'; // Preenche o campo com um número padrão
+            
+            // Preenche a data do orçamento
             const today = new Date();
             const yyyy = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
             const dd = String(today.getDate()).padStart(2, '0');
-            document.getElementById('orcamentoDate').value = `${yyyy}-${mm}-${dd}`;
+            orcamentoDateInput.value = `${yyyy}-${mm}-${dd}`;
+            
             document.querySelectorAll('.item-row input').forEach(input => {
                 input.addEventListener('input', calculateTotal);
             });
