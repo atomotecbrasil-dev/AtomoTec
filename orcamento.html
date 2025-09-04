@@ -57,7 +57,7 @@
             </div>
             <div>
                 <div>
-                <p class="font-bold text-gray-700">Validade9090:</p>
+                <p class="font-bold text-gray-700">Validade:</p>
                 <input id="validade-input" type="text" value="30 dias" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
             </div>
@@ -255,6 +255,154 @@
             }
         };
 
+        const generatePDF = () => {
+            const orcamentoNumeroSpan = document.getElementById('orcamento-numero');
+            const dataAtualSpan = document.getElementById('data-atual');
+            const validadeInput = document.getElementById('validade-input');
+            const condicoesPagamentoInput = document.getElementById('condicoes-pagamento-input');
+            const statusSelect = document.getElementById('status-select');
+            
+            const clienteNome = document.getElementById('cliente-nome').value;
+            const clienteEmail = document.getElementById('cliente-email').value;
+            const clienteTelefone = document.getElementById('cliente-telefone').value;
+
+            const itensRows = document.querySelectorAll('#itens-tabela tr');
+            let allItemsValid = true;
+            itensRows.forEach(row => {
+                const descricao = row.querySelector('.descricao').value.trim();
+                if (!descricao) {
+                    allItemsValid = false;
+                }
+            });
+
+            if (!clienteNome || !clienteEmail || !clienteTelefone || !allItemsValid) {
+                showMessage('Erro', 'Por favor, preencha as informações do cliente e a descrição de todos os itens.', 'error');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            let y = 20;
+            const blueColor = [59, 130, 246];
+            doc.setFillColor(...blueColor);
+            doc.rect(0, 0, doc.internal.pageSize.getWidth(), 30, 'F');
+            doc.setFontSize(24);
+            doc.setTextColor(255, 255, 255);
+            doc.text("Orçamento", 105, y, null, null, "center");
+            y += 10;
+            doc.setFontSize(14);
+            doc.text("AtomoTech", 105, y, null, null, "center");
+            y += 10;
+            doc.setTextColor(0, 0, 0);
+            y += 5;
+
+            const status = statusSelect.value;
+            let statusColor = [0, 0, 0];
+            const statusX = doc.internal.pageSize.getWidth() - 50;
+            const statusY = 10;
+            const statusWidth = 40;
+            const statusHeight = 10;
+
+            doc.setFontSize(10);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont(undefined, 'bold');
+            
+            switch(status) {
+                case "Pendente":
+                    statusColor = [255, 193, 7];
+                    doc.setFillColor(...statusColor);
+                    doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                    doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                    break;
+                case "Aprovado":
+                    statusColor = [40, 167, 69];
+                    doc.setFillColor(...statusColor);
+                    doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                    doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                    break;
+                case "Rejeitado":
+                    statusColor = [220, 53, 69];
+                    doc.setFillColor(...statusColor);
+                    doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                    doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                    break;
+                case "Cancelado":
+                    statusColor = [220, 53, 69];
+                    doc.setFillColor(...statusColor);
+                    doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                    doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                    
+                    doc.setDrawColor(255, 193, 7);
+                    doc.setLineWidth(1);
+                    doc.line(statusX, statusY + statusHeight, statusX + statusWidth, statusY);
+                    break;
+            }
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFont(undefined, 'normal');
+
+            doc.setFontSize(12);
+            doc.text(`Orçamento: ${orcamentoNumeroSpan.textContent}`, 20, y);
+            doc.text(`Data: ${dataAtualSpan.textContent}`, 105, y);
+            y += 7;
+            doc.text(`Validade: ${validadeInput.value}`, 20, y);
+            doc.text(`Condições de Pagamento: ${condicoesPagamentoInput.value}`, 105, y);
+            y += 7;
+            doc.text(`Status: ${statusSelect.value}`, 20, y);
+            y += 10;
+
+            doc.setFontSize(14);
+            doc.text("Informações do Cliente", 20, y);
+            y += 7;
+            doc.setFontSize(12);
+            doc.text(`Nome: ${clienteNome}`, 20, y);
+            doc.text(`Email: ${clienteEmail}`, 105, y);
+            y += 7;
+            doc.text(`Telefone: ${clienteTelefone}`, 20, y);
+            y += 10;
+
+            const headers = ["Descrição", "Qtd", "Valor Unit.", "Total"];
+            const dataRows = [];
+            document.querySelectorAll('#itens-tabela tr').forEach(row => {
+                const rowData = [
+                    row.querySelector('.descricao').value,
+                    row.querySelector('.qtd').value,
+                    row.querySelector('.valor-unit').value,
+                    row.querySelector('.item-total').textContent
+                ];
+                dataRows.push(rowData);
+            });
+            
+            doc.autoTable({
+                head: [headers],
+                body: dataRows,
+                startY: y,
+                theme: 'grid',
+                styles: { cellPadding: 2, fontSize: 10 },
+                headStyles: { fillColor: blueColor, textColor: 255 },
+                columnStyles: {
+                    0: { cellWidth: 'auto' },
+                    1: { cellWidth: 20 },
+                    2: { cellWidth: 30 },
+                    3: { cellWidth: 30 }
+                }
+            });
+
+            y = doc.autoTable.previous.finalY + 5;
+            doc.setFontSize(12);
+            doc.text(`Total: ${document.getElementById('total-orcamento').textContent}`, 180, y, null, null, "right");
+            y += 20;
+
+            doc.line(60, y, 150, y);
+            y += 5;
+            doc.text("Assinatura do Cliente", 105, y, null, null, "center");
+
+            const orcamentoNumeroPDF = orcamentoNumeroSpan.textContent.replace(/ /g, '_').replace('#', '');
+            doc.save(`orcamento-${orcamentoNumeroPDF}.pdf`);
+        };
+
+
         // Main logic to be executed once the DOM is fully loaded
         document.addEventListener('DOMContentLoaded', async () => {
             console.log("DOM content loaded. Initializing app.");
@@ -281,6 +429,10 @@
             const validadeInput = document.getElementById('validade-input');
             const condicoesPagamentoInput = document.getElementById('condicoes-pagamento-input');
             const statusSelect = document.getElementById('status-select');
+            
+            const clienteNomeInput = document.getElementById('cliente-nome');
+            const clienteEmailInput = document.getElementById('cliente-email');
+            const clienteTelefoneInput = document.getElementById('cliente-telefone');
 
             // Setar data e número do orçamento
             const data = new Date();
@@ -294,6 +446,15 @@
             
             // Add initial item row
             addItem();
+            
+            // Adicionar funcionalidade de preenchimento automático
+            clienteNomeInput.addEventListener('input', () => {
+                const nome = clienteNomeInput.value.trim();
+                if (nome.length > 2) {
+                    clienteEmailInput.value = `${nome.toLowerCase().replace(/ /g, '')}@exemplo.com`;
+                    clienteTelefoneInput.value = `(99) 99999-9999`;
+                }
+            });
 
             // Add all event listeners
             const addItemBtn = document.getElementById('add-item-btn');
@@ -361,154 +522,7 @@
 
             const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
             if (gerarPdfBtn) {
-                gerarPdfBtn.addEventListener('click', () => {
-                    const orcamentoNumeroSpan = document.getElementById('orcamento-numero');
-                    const orcamentoNumero = orcamentoNumeroSpan.textContent;
-                    
-                    // Basic validation before generating PDF
-                    const clienteNome = document.getElementById('cliente-nome').value;
-                    const clienteEmail = document.getElementById('cliente-email').value;
-                    const clienteTelefone = document.getElementById('cliente-telefone').value;
-
-                    const itensRows = document.querySelectorAll('#itens-tabela tr');
-                    let allItemsValid = true;
-                    if (itensRows.length === 0) {
-                        allItemsValid = false;
-                    } else {
-                        itensRows.forEach(row => {
-                            const descricao = row.querySelector('.descricao').value.trim();
-                            if (!descricao) {
-                                allItemsValid = false;
-                            }
-                        });
-                    }
-
-                    if (!clienteNome || !clienteEmail || !clienteTelefone || !allItemsValid) {
-                        showMessage('Erro', 'Por favor, preencha as informações do cliente e a descrição de todos os itens.', 'error');
-                        return;
-                    }
-
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF();
-                    
-                    let y = 20;
-                    const blueColor = [59, 130, 246];
-                    doc.setFillColor(...blueColor);
-                    doc.rect(0, 0, doc.internal.pageSize.getWidth(), 30, 'F');
-                    doc.setFontSize(24);
-                    doc.setTextColor(255, 255, 255);
-                    doc.text("Orçamento", 105, y, null, null, "center");
-                    y += 10;
-                    doc.setFontSize(14);
-                    doc.text("AtomoTech", 105, y, null, null, "center");
-                    y += 10;
-                    doc.setTextColor(0, 0, 0);
-                    y += 5;
-
-                    const status = statusSelect.value;
-                    let statusColor = [0, 0, 0];
-                    const statusX = doc.internal.pageSize.getWidth() - 50;
-                    const statusY = 10;
-                    const statusWidth = 40;
-                    const statusHeight = 10;
-
-                    doc.setFontSize(10);
-                    doc.setTextColor(255, 255, 255);
-                    doc.setFont(undefined, 'bold');
-                    
-                    switch(status) {
-                        case "Pendente":
-                            statusColor = [255, 193, 7];
-                            doc.setFillColor(...statusColor);
-                            doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
-                            doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
-                            break;
-                        case "Aprovado":
-                            statusColor = [40, 167, 69];
-                            doc.setFillColor(...statusColor);
-                            doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
-                            doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
-                            break;
-                        case "Rejeitado":
-                            statusColor = [220, 53, 69];
-                            doc.setFillColor(...statusColor);
-                            doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
-                            doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
-                            break;
-                        case "Cancelado":
-                            statusColor = [220, 53, 69];
-                            doc.setFillColor(...statusColor);
-                            doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
-                            doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
-                            
-                            doc.setDrawColor(255, 193, 7);
-                            doc.setLineWidth(1);
-                            doc.line(statusX, statusY + statusHeight, statusX + statusWidth, statusY);
-                            break;
-                    }
-                    
-                    doc.setTextColor(0, 0, 0);
-                    doc.setFont(undefined, 'normal');
-
-                    doc.setFontSize(12);
-                    doc.text(`Orçamento: ${orcamentoNumero}`, 20, y);
-                    doc.text(`Data: ${dataAtualSpan.textContent}`, 105, y);
-                    y += 7;
-                    doc.text(`Validade9090: ${validadeInput.value}`, 20, y);
-                    doc.text(`Condições de Pagamento: ${condicoesPagamentoInput.value}`, 105, y);
-                    y += 7;
-                    doc.text(`Status: ${statusSelect.value}`, 20, y);
-                    y += 10;
-
-                    doc.setFontSize(14);
-                    doc.text("Informações do Cliente", 20, y);
-                    y += 7;
-                    doc.setFontSize(12);
-                    doc.text(`Nome: ${document.getElementById('cliente-nome').value}`, 20, y);
-                    doc.text(`Email: ${document.getElementById('cliente-email').value}`, 105, y);
-                    y += 7;
-                    doc.text(`Telefone: ${document.getElementById('cliente-telefone').value}`, 20, y);
-                    y += 10;
-
-                    const headers = ["Descrição", "Qtd", "Valor Unit.", "Total"];
-                    const dataRows = [];
-                    document.querySelectorAll('#itens-tabela tr').forEach(row => {
-                        const rowData = [
-                            row.querySelector('.descricao').value,
-                            row.querySelector('.qtd').value,
-                            row.querySelector('.valor-unit').value,
-                            row.querySelector('.item-total').textContent
-                        ];
-                        dataRows.push(rowData);
-                    });
-                    
-                    doc.autoTable({
-                        head: [headers],
-                        body: dataRows,
-                        startY: y,
-                        theme: 'grid',
-                        styles: { cellPadding: 2, fontSize: 10 },
-                        headStyles: { fillColor: blueColor, textColor: 255 },
-                        columnStyles: {
-                            0: { cellWidth: 'auto' },
-                            1: { cellWidth: 20 },
-                            2: { cellWidth: 30 },
-                            3: { cellWidth: 30 }
-                        }
-                    });
-
-                    y = doc.autoTable.previous.finalY + 5;
-                    doc.setFontSize(12);
-                    doc.text(`Total: ${document.getElementById('total-orcamento').textContent}`, 180, y, null, null, "right");
-                    y += 20;
-
-                    doc.line(60, y, 150, y);
-                    y += 5;
-                    doc.text("Assinatura do Cliente", 105, y, null, null, "center");
-
-                    const orcamentoNumeroPDF = orcamentoNumero.replace(/ /g, '_').replace('#', '');
-                    doc.save(`orcamento-${orcamentoNumeroPDF}.pdf`);
-                });
+                gerarPdfBtn.addEventListener('click', generatePDF);
             }
 
             const voltarBtn = document.getElementById('voltar-btn');
