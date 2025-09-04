@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orçamento de Serviço</title>
+    <title>Orçamento - AtomoTech</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -11,14 +11,21 @@
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
+        /* Esconder campos de entrada e botões no PDF */
+        .hide-on-pdf {
+            display: none !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100 p-8">
 
-    <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-lg p-8">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">Orçamento</h1>
-            <img src="https://placehold.co/150x50/e2e8f0/334155?text=Sua+Logo" alt="Logo da Empresa" class="w-28 rounded-md">
+    <div id="orcamento-container" class="max-w-4xl mx-auto bg-white shadow-xl rounded-lg p-8">
+        <div class="relative flex justify-between items-center mb-6">
+            <button id="voltar-btn" class="absolute left-0 top-1/2 transform -translate-y-1/2 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">Voltar</button>
+            <div class="flex-grow text-center">
+                <h1 class="text-3xl font-bold text-gray-800 inline-block">Orçamento</h1>
+            </div>
+            <img src="https://placehold.co/150x50/e2e8f0/334155?text=AtomoTech" alt="Logo da AtomoTech" class="w-28 rounded-md ml-auto">
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-sm">
@@ -43,9 +50,9 @@
         <div class="mb-8 p-6 bg-gray-50 rounded-lg">
             <h2 class="text-lg font-semibold text-gray-700 mb-4">Informações do Cliente</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input type="text" placeholder="Nome" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="email" placeholder="Email" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input type="tel" placeholder="Telefone" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input id="cliente-nome" type="text" placeholder="Nome" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input id="cliente-email" type="email" placeholder="Email" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input id="cliente-telefone" type="tel" placeholder="Telefone" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
 
@@ -57,7 +64,7 @@
                         <th scope="col" class="px-6 py-3">Qtd</th>
                         <th scope="col" class="px-6 py-3">Valor Unit.</th>
                         <th scope="col" class="px-6 py-3">Total</th>
-                        <th scope="col" class="px-6 py-3"></th>
+                        <th scope="col" class="px-6 py-3 hide-on-pdf"></th>
                     </tr>
                 </thead>
                 <tbody id="itens-tabela">
@@ -86,9 +93,7 @@
     </div>
 
     <!-- Script para gerar PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const itensTabela = document.getElementById('itens-tabela');
@@ -98,6 +103,7 @@
             const orcamentoNumeroSpan = document.getElementById('orcamento-numero');
             const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
             const salvarBtn = document.getElementById('salvar-btn');
+            const voltarBtn = document.getElementById('voltar-btn');
             
             // Setar data e número do orçamento
             const data = new Date();
@@ -141,7 +147,7 @@
                     <td class="px-6 py-4"><input type="number" value="${qtd}" class="qtd w-20 px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-right"></td>
                     <td class="px-6 py-4"><input type="number" value="${valorUnit}" step="0.01" class="valor-unit w-24 px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-right"></td>
                     <td class="px-6 py-4 text-right item-total">R$ 0,00</td>
-                    <td class="px-6 py-4 text-right">
+                    <td class="px-6 py-4 text-right hide-on-pdf">
                         <button class="remover-item-btn text-red-600 hover:text-red-800 transition-colors">Remover</button>
                     </td>
                 `;
@@ -174,37 +180,99 @@
             addItem('RJ45', 10, 3.00);
             addItem('Cabo', 4, 350.00);
 
-            // Gerar PDF
+            // Gerar PDF de forma profissional
             gerarPdfBtn.addEventListener('click', () => {
                 const { jsPDF } = window.jspdf;
-                const element = document.querySelector('.max-w-4xl');
+                const doc = new jsPDF();
+                
+                let y = 20;
 
-                const loader = document.createElement('div');
-                loader.textContent = 'Gerando PDF...';
-                loader.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); padding:20px; background:rgba(0,0,0,0.7); color:white; border-radius:10px; z-index:1000;';
-                document.body.appendChild(loader);
+                // Título e dados da empresa
+                doc.setFontSize(24);
+                doc.text("Orçamento de Serviço", 105, y, null, null, "center");
+                y += 10;
+                doc.setFontSize(14);
+                doc.text("AtomoTech", 105, y, null, null, "center");
+                y += 10;
+                doc.line(20, y, 190, y); // Linha separadora
+                y += 10;
 
-                html2canvas(element, { scale: 2 }).then(canvas => {
-                    const imgData = canvas.toDataURL('image/png');
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    const imgProps = pdf.getImageProperties(imgData);
-                    const pdfWidth = pdf.internal.pageSize.getWidth();
-                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-                    
-                    const orcamentoNumero = orcamentoNumeroSpan.textContent.replace(/ /g, '_').replace('#', '');
-                    pdf.save(`orcamento-${orcamentoNumero}.pdf`);
-                    
-                    loader.remove();
+                // Dados do orçamento
+                doc.setFontSize(12);
+                doc.text(`Orçamento: ${orcamentoNumeroSpan.textContent}`, 20, y);
+                doc.text(`Data: ${dataAtualSpan.textContent}`, 105, y);
+                y += 7;
+                doc.text(`Validade: ${document.querySelector('input[value="30 dias"]').value}`, 20, y);
+                doc.text(`Condições de Pagamento: ${document.querySelector('input[value="Avista"]').value}`, 105, y);
+                y += 10;
+
+                // Informações do Cliente
+                doc.setFontSize(14);
+                doc.text("Informações do Cliente", 20, y);
+                y += 7;
+                doc.setFontSize(12);
+                doc.text(`Nome: ${document.getElementById('cliente-nome').value}`, 20, y);
+                doc.text(`Email: ${document.getElementById('cliente-email').value}`, 105, y);
+                y += 7;
+                doc.text(`Telefone: ${document.getElementById('cliente-telefone').value}`, 20, y);
+                y += 10;
+
+                // Tabela de itens
+                const headers = ["Descrição", "Qtd", "Valor Unit.", "Total"];
+                const dataRows = [];
+                document.querySelectorAll('#itens-tabela tr').forEach(row => {
+                    const rowData = [
+                        row.querySelector('.descricao').value,
+                        row.querySelector('.qtd').value,
+                        row.querySelector('.valor-unit').value,
+                        row.querySelector('.item-total').textContent
+                    ];
+                    dataRows.push(rowData);
                 });
+                
+                doc.autoTable({
+                    head: [headers],
+                    body: dataRows,
+                    startY: y,
+                    theme: 'grid',
+                    styles: { cellPadding: 2, fontSize: 10 },
+                    columnStyles: {
+                        0: { cellWidth: 'auto' },
+                        1: { cellWidth: 20 },
+                        2: { cellWidth: 30 },
+                        3: { cellWidth: 30 }
+                    }
+                });
+
+                // Total
+                y = doc.autoTable.previous.finalY + 5;
+                doc.setFontSize(12);
+                doc.text(`Total: ${totalOrcamentoSpan.textContent}`, 180, y, null, null, "right");
+                y += 20;
+
+                // Assinatura
+                doc.line(60, y, 150, y);
+                y += 5;
+                doc.text("Assinatura do Cliente", 105, y, null, null, "center");
+
+                // Salvar o PDF
+                const orcamentoNumero = orcamentoNumeroSpan.textContent.replace(/ /g, '_').replace('#', '');
+                doc.save(`orcamento-${orcamentoNumero}.pdf`);
             });
 
-            // Botão Salvar (funcionalidade pode ser implementada aqui)
+            // Botão Salvar
             salvarBtn.addEventListener('click', () => {
                 alert('Funcionalidade de salvar ainda não implementada.');
                 // Adicione a lógica para salvar os dados do orçamento aqui (ex: enviar para um servidor)
             });
+
+            // Botão Voltar
+            voltarBtn.addEventListener('click', () => {
+                window.history.back();
+            });
         });
     </script>
+    <!-- Adiciona a biblioteca jsPDF-AutoTable para criar tabelas no PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.plugin.autotable.min.js"></script>
 </body>
 </html>
