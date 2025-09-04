@@ -10,6 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -42,7 +43,7 @@
             <!-- Logo e Nome da Empresa -->
             <div class="flex items-center">
                 <img src="logo.png" alt="AtomoTech Logo" class="h-8 mr-2">
-                <h1 class="text-3xl font-bold">AtomoTech00</h1>
+                <h1 class="text-3xl font-bold">AtomoTech</h1>
             </div>
             
             <div class="flex items-center space-x-4">
@@ -134,7 +135,12 @@
                     </table>
                 </div>
             </div>
-
+            <!-- Div para a Saída de Depuração (oculta por padrão) -->
+            <div id="debug-output" class="hidden mt-6 p-4 bg-gray-800 text-gray-100 rounded-lg shadow-inner font-mono">
+                <h3 class="font-bold mb-2">Saída de Depuração</h3>
+                <pre id="debug-pre"></pre>
+            </div>
+            <button onclick="toggleDebugOutput()" class="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg shadow hover:bg-gray-700 transition-colors">Exibir/Ocultar Depuração</button>
         </div>
     </main>
 
@@ -244,6 +250,11 @@
         function closeModal() {
             document.getElementById('message-modal').classList.add('hidden');
         }
+
+        function toggleDebugOutput() {
+            const debugDiv = document.getElementById('debug-output');
+            debugDiv.classList.toggle('hidden');
+        }
         
         // --- Funções do Modal de Edição ---
         function openEditModal(docId, collectionName) {
@@ -257,9 +268,9 @@
             }
 
             // Popula o formulário com os dados do documento
-            document.getElementById('cliente-nome').value = docData.cliente.nome || '';
-            document.getElementById('cliente-email').value = docData.cliente.email || '';
-            document.getElementById('cliente-telefone').value = docData.cliente.telefone || '';
+            document.getElementById('cliente-nome').value = docData.cliente?.nome || '';
+            document.getElementById('cliente-email').value = docData.cliente?.email || '';
+            document.getElementById('cliente-telefone').value = docData.cliente?.telefone || '';
             document.getElementById('data-documento').value = docData.data || '';
             document.getElementById('status-documento').value = docData.status || 'Pendente';
             document.getElementById('valor-total').value = docData.valor_total || 0;
@@ -338,10 +349,13 @@
         function getFormData() {
             const itens = [];
             document.querySelectorAll('#itens-container > div').forEach(itemDiv => {
+                const descricao = itemDiv.querySelector('.item-descricao').value;
+                const qtd = parseFloat(itemDiv.querySelector('.item-qtd').value) || 0;
+                const valor_unit = parseFloat(itemDiv.querySelector('.item-valor-unit').value) || 0;
                 itens.push({
-                    descricao: itemDiv.querySelector('.item-descricao').value,
-                    qtd: parseFloat(itemDiv.querySelector('.item-qtd').value),
-                    valor_unit: parseFloat(itemDiv.querySelector('.item-valor-unit').value)
+                    descricao: descricao,
+                    qtd: qtd,
+                    valor_unit: valor_unit
                 });
             });
 
@@ -436,9 +450,10 @@
                     if (user) {
                         userId = user.uid;
                         document.getElementById('user-status').textContent = `Conectado como ${userId.substring(0, 8)}...`;
-                        console.log("Usuário autenticado:", userId);
+                        console.log("Usuário autenticado. UID:", userId);
                         subscribeToDocuments(activeCollection);
                     } else {
+                        console.log("Usuário não autenticado. Tentando entrar com token...");
                         if (initialAuthToken) {
                             await signInWithCustomToken(authInstance, initialAuthToken);
                         } else {
@@ -455,17 +470,32 @@
         // --- Assinar coleções com onSnapshot para atualizações em tempo real ---
         let unsubscribe = null;
         function subscribeToDocuments(collectionName) {
+            if (!userId) {
+                console.error("Usuário não autenticado, não é possível assinar a coleção.");
+                return;
+            }
+
             if (unsubscribe) {
                 unsubscribe();
             }
 
-            const docsRef = collection(db, `artifacts/${appId}/users/${userId}/${collectionName}`);
+            const docsPath = `artifacts/${appId}/users/${userId}/${collectionName}`;
+            const docsRef = collection(db, docsPath);
+            
+            console.log(`Buscando documentos na coleção: ${docsPath}`);
+
             unsubscribe = onSnapshot(docsRef, (snapshot) => {
-                currentDocuments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                currentDocuments = data;
+                
+                // Saída de depuração
+                console.log(`Dados brutos recebidos para '${collectionName}':`, data);
+                document.getElementById('debug-pre').textContent = JSON.stringify(data, null, 2);
+
                 applyFilters();
             }, (error) => {
                 console.error("Erro ao assinar a coleção:", error);
-                showMessage('Erro de Dados', 'Não foi possível carregar os documentos em tempo real.');
+                showMessage('Erro de Dados', 'Não foi possível carregar os documentos em tempo real. Verifique o console.');
             });
         }
         
@@ -514,9 +544,9 @@
                 const matchStatus = !status || doc.status === status;
                 const matchCliente = !cliente || (doc.cliente?.nome && doc.cliente.nome.toLowerCase().includes(cliente));
                 
-                const docDate = new Date(doc.data);
-                const matchStartDate = !startDate || docDate >= new Date(startDate);
-                const matchEndDate = !endDate || docDate <= new Date(endDate);
+                const docDate = doc.data ? new Date(doc.data) : null;
+                const matchStartDate = !startDate || (docDate && docDate >= new Date(startDate));
+                const matchEndDate = !endDate || (docDate && docDate <= new Date(endDate));
 
                 return matchStatus && matchCliente && matchStartDate && matchEndDate;
             });
@@ -578,6 +608,7 @@
         window.generatePdfAndClose = generatePdfAndClose;
         window.applyFilters = applyFilters;
         window.resetFilters = resetFilters;
+        window.toggleDebugOutput = toggleDebugOutput;
 
         // Configuração inicial.
         window.onload = () => {
