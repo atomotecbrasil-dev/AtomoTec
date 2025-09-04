@@ -57,7 +57,7 @@
             </div>
             <div>
                 <div>
-                <p class="font-bold text-gray-700">Validade8020:</p>
+                <p class="font-bold text-gray-700">Validade:</p>
                 <input id="validade-input" type="text" value="30 dias" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
             </div>
@@ -130,10 +130,20 @@
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Global variables provided by the environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        // Variáveis de configuração do Firebase inseridas diretamente no código
+        const firebaseConfig = {
+            apiKey: "AIzaSyBD5NJXU1YBb1tbWAtaO8tyx21x5UwDs58",
+            authDomain: "atomotech-gestao.firebaseapp.com",
+            projectId: "atomotech-gestao",
+            storageBucket: "atomotech-gestao.firebasestorage.app",
+            messagingSenderId: "307660458127",
+            appId: "1:307660458127:web:853844133b6cf7c7e788fa",
+            measurementId: "G-WB5BZPR532"
+        };
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = firebaseConfig.appId;
+
+        console.log("Variável de configuração do Firebase:", firebaseConfig);
 
         let db, auth;
         let isFirebaseInitialized = false;
@@ -352,16 +362,6 @@
             doc.text(`Status: ${statusSelect.value}`, 20, y);
             y += 10;
 
-            doc.setFontSize(14);
-            doc.text("Informações do Cliente", 20, y);
-            y += 7;
-            doc.setFontSize(12);
-            doc.text(`Nome: ${clienteNome}`, 20, y);
-            doc.text(`Email: ${clienteEmail}`, 105, y);
-            y += 7;
-            doc.text(`Telefone: ${clienteTelefone}`, 20, y);
-            y += 10;
-
             const headers = ["Descrição", "Qtd", "Valor Unit.", "Total"];
             const dataRows = [];
             document.querySelectorAll('#itens-tabela tr').forEach(row => {
@@ -416,7 +416,13 @@
                 auth = getAuth(app);
                 db = getFirestore(app);
 
-                await signInWithCustomToken(auth, initialAuthToken);
+                // Use signInWithCustomToken se estiver definido, caso contrário, use signInAnonymously
+                if (initialAuthToken) {
+                  await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                  await signInAnonymously(auth);
+                }
+                
                 isFirebaseInitialized = true;
                 console.log("Firebase initialized and user signed in.");
             } catch (error) {
@@ -471,6 +477,7 @@
                     }
 
                     const orcamentoNumero = orcamentoNumeroSpan.textContent;
+                    // Alterado o path da coleção para usar o appId e o userId
                     const orcamentoRef = doc(db, `artifacts/${appId}/users/${auth.currentUser.uid}/orcamentos`, orcamentoNumero);
                     
                     const itens = [];
