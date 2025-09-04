@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Gravação no Firebase</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="p-4">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl text-center">
+        <h1 class="text-3xl font-bold mb-4 text-gray-800">Verificação de Gravação no Firebase</h1>
+        <p class="text-gray-600 mb-6">Clique no botão para tentar gravar um documento no Firestore. A confirmação aparecerá abaixo.</p>
+        
+        <button id="saveButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md">
+            Gravar Exemplo de Orçamento
+        </button>
+
+        <div id="status" class="mt-8 p-4 rounded-lg text-sm text-gray-700 font-medium bg-gray-100 hidden">
+            <p>Aguardando operação...</p>
+        </div>
+
+        <div id="result" class="mt-8 p-6 rounded-lg bg-green-50 border border-green-200 text-left hidden">
+            <h2 class="text-lg font-bold text-green-800 mb-2">Dados Gravados e Recebidos!</h2>
+            <pre id="dataContent" class="text-sm overflow-x-auto text-green-700 bg-green-100 p-3 rounded-md"></pre>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Adiciona um listener para ver logs de debug no console
+        setLogLevel('debug');
+
+        // Referências aos elementos da interface
+        const saveButton = document.getElementById('saveButton');
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+        const dataContentPre = document.getElementById('dataContent');
+
+        let db;
+        let auth;
+        let userId;
+        let isAuthReady = false;
+
+        // Variáveis globais de ambiente que serão preenchidas no Canvas
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Dados de exemplo para o teste
+        const mockData = {
+            orcamentoId: "040925-596",
+            cliente: "Rogerio Sena",
+            data: new Date().toISOString().split('T')[0],
+            total: 1670,
+            itens: [
+                { descricao: "RJ45", quantidade: 10, valorUnitario: 3, total: 30 },
+                { descricao: "Cabo 4 vias", quantidade: 2, valorUnitario: 120, total: 240 },
+                { descricao: "CAT5", quantidade: 4, valorUnitario: 350, total: 1400 }
+            ]
+        };
+
+        // Função de inicialização do Firebase e autenticação
+        async function initializeFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    console.log("Autenticado com token personalizado.");
+                } else {
+                    await signInAnonymously(auth);
+                    console.log("Autenticado anonimamente.");
+                }
+
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                isAuthReady = true;
+
+                // Mostra o ID do usuário para depuração
+                console.log("ID do Usuário:", userId);
+                
+                // Exibe uma mensagem de status inicial
+                statusDiv.classList.remove('hidden');
+                statusDiv.innerHTML = `<p>Firebase inicializado. ID do usuário: <span class="font-bold text-gray-900 break-all">${userId}</span></p>`;
+                
+                setupRealtimeListener();
+
+            } catch (error) {
+                console.error("Erro ao inicializar o Firebase ou autenticar:", error);
+                statusDiv.classList.remove('hidden');
+                statusDiv.innerHTML = `<p class="text-red-600">Erro ao inicializar Firebase: ${error.message}</p>`;
+            }
+        }
+
+        // Configura o ouvinte em tempo real para a coleção de orçamentos
+        function setupRealtimeListener() {
+            if (!isAuthReady || !db || !userId) {
+                console.log("Aguardando inicialização do Firebase e autenticação.");
+                return;
+            }
+
+            // O caminho da coleção segue a estrutura de dados privados do Canvas
+            const collectionPath = `/artifacts/${appId}/users/${userId}/orcamentos`;
+            const q = query(collection(db, collectionPath));
+            
+            // onSnapshot é a forma recomendada de ler dados em tempo real
+            onSnapshot(q, (querySnapshot) => {
+                const documents = [];
+                querySnapshot.forEach((doc) => {
+                    documents.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (documents.length > 0) {
+                    // Se houver documentos, mostra o último gravado
+                    const lastDoc = documents[documents.length - 1];
+                    resultDiv.classList.remove('hidden');
+                    dataContentPre.textContent = JSON.stringify(lastDoc, null, 2);
+                    statusDiv.innerHTML = `<p class="text-green-600">Dados recebidos com sucesso!</p>`;
+                } else {
+                    // Se a coleção estiver vazia, apenas mostra que está pronta para gravação
+                    resultDiv.classList.add('hidden');
+                    statusDiv.innerHTML = `<p>Conectado ao Firestore. Clique no botão para gravar um documento.</p>`;
+                }
+            }, (error) => {
+                console.error("Erro ao ouvir a coleção:", error);
+                statusDiv.innerHTML = `<p class="text-red-600">Erro no listener: ${error.message}</p>`;
+            });
+        }
+
+        // Lógica para gravar o documento
+        async function saveDocument() {
+            if (!isAuthReady || !db) {
+                statusDiv.innerHTML = `<p class="text-orange-600">Aguardando a inicialização do Firebase...</p>`;
+                return;
+            }
+
+            try {
+                // Caminho da coleção de orçamentos
+                const collectionPath = `/artifacts/${appId}/users/${userId}/orcamentos`;
+                
+                // Adiciona um novo documento com o mockData
+                await addDoc(collection(db, collectionPath), mockData);
+
+                statusDiv.innerHTML = `<p class="text-blue-600">Documento gravado com sucesso! Aguardando o listener para a confirmação...</p>`;
+
+            } catch (error) {
+                console.error("Erro ao gravar o documento:", error);
+                statusDiv.innerHTML = `<p class="text-red-600">Erro na gravação: ${error.message}</p>`;
+            }
+        }
+
+        // Listener de clique para o botão de salvar
+        saveButton.addEventListener('click', saveDocument);
+
+        // Inicia a aplicação
+        initializeFirebase();
+    </script>
+</body>
+</html>
