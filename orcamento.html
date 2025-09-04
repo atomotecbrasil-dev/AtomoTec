@@ -192,7 +192,7 @@
         }
         window.closeModal = () => { successModal.classList.add('hidden'); };
 
-        // --- Funções Firebase ---
+        // --- Inicialização do Firebase ---
         function initializeFirebase() {
             try {
                 const app = initializeApp(firebaseConfig);
@@ -227,7 +227,7 @@
                         })
                         .catch((error) => {
                             console.error("Erro na autenticação com token personalizado:", error);
-                            // Fallback para autenticação anônima se o token falhar
+                            // Fallback para autenticação anônima
                             signInAnonymously(authInstance).catch((e) => console.error("Erro na autenticação anônima:", e));
                         });
                 } else {
@@ -350,8 +350,6 @@
         
         // --- Função para Salvar ou Salvar e Gerar PDF ---
         async function handleSaveAndGenerate(generatePdfFlag) {
-            // A verificação de userId não é mais a única barreira, a habilitação dos botões
-            // já garante que a conexão está pronta.
             showLoading();
 
             const numeroOrcamento = document.getElementById('numeroOrcamento').value;
@@ -406,11 +404,11 @@
         // --- Event Listeners ---
         addItemBtn.addEventListener('click', addItemRow);
         
-        document.getElementById('saveOnlyBtn').addEventListener('click', () => {
+        saveOnlyBtn.addEventListener('click', () => {
             handleSaveAndGenerate(false);
         });
 
-        orcamentoForm.addEventListener('submit', async (e) => {
+        orcamentoForm.addEventListener('submit', (e) => {
             e.preventDefault();
             handleSaveAndGenerate(true);
         });
