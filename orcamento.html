@@ -12,6 +12,7 @@
             background-color: #f3f4f6;
             position: relative;
         }
+
         /* Adiciona a imagem de fundo com opacidade */
         body::before {
             content: '';
@@ -20,11 +21,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url('Public/logo.png');
+            background-image: url('logo.png'); /* Caminho corrigido para o arquivo logo.png */
             background-repeat: no-repeat;
             background-position: center center;
             background-size: 400px;
-            opacity: 0.05; /* Opacidade de 5% para o plano de fundo, 50% estava muito alto */
+            opacity: 0.05;
             z-index: -1;
         }
 
@@ -42,7 +43,7 @@
             <div class="flex-grow text-center">
                 <h1 class="text-3xl font-bold text-gray-800 inline-block">Orçamento</h1>
             </div>
-            <img src="https://placehold.co/150x50/e2e8f0/334155?text=AtomoTech" alt="Logo da AtomoTech" class="w-28 rounded-md ml-auto">
+            <img src="logo.png" alt="Logo da AtomoTech" class="w-28 rounded-md ml-auto" onerror="this.onerror=null;this.src='https://placehold.co/150x50/e2e8f0/334155?text=AtomoTech';">
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-sm">
@@ -55,8 +56,10 @@
                 <p id="data-atual" class="text-gray-900"></p>
             </div>
             <div>
-                <p class="font-bold text-gray-700">Validade5050:</p>
+                <div>
+                <p class="font-bold text-gray-700">Validade:</p>
                 <input id="validade-input" type="text" value="30 dias" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
             </div>
             <div>
                 <p class="font-bold text-gray-700">Condições de Pagamento:</p>
@@ -90,7 +93,7 @@
                         <th scope="col" class="px-6 py-3">Qtd</th>
                         <th scope="col" class="px-6 py-3">Valor Unit.</th>
                         <th scope="col" class="px-6 py-3">Total</th>
-                        <th scope="col" class="px-6 py-3 hide-on-pdf"></th>
+                        <th scope="col" class="px-6 py-3"></th>
                     </tr>
                 </thead>
                 <tbody id="itens-tabela">
@@ -106,10 +109,10 @@
             </table>
         </div>
 
-        <button id="add-item-btn" class="mb-8 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors hide-on-pdf">Adicionar Item</button>
+        <button id="add-item-btn" class="mb-8 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">Adicionar Item</button>
         
         <div class="flex justify-end gap-4 mb-8">
-            <button id="salvar-btn" class="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors hide-on-pdf">Salvar</button>
+            <button id="salvar-btn" class="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors">Salvar</button>
             <button id="gerar-pdf-btn" class="px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors">Gerar PDF</button>
         </div>
 
@@ -121,8 +124,87 @@
     <!-- Script para gerar PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.plugin.autotable.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Function to show a custom message box
+        const showMessage = (title, message, type = 'success') => {
+            const messageBox = document.createElement('div');
+            messageBox.classList.add('fixed', 'inset-0', 'bg-gray-800', 'bg-opacity-50', 'flex', 'items-center', 'justify-center', 'z-50');
+            const boxColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            messageBox.innerHTML = `
+                <div class="bg-white rounded-lg p-6 shadow-xl w-80 text-center">
+                    <div class="p-4 ${boxColor} text-white rounded-t-md mb-4">
+                        <p class="text-xl font-bold">${title}</p>
+                    </div>
+                    <p class="text-lg font-semibold text-gray-800 mb-4">${message}</p>
+                    <button id="close-message" class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">Fechar</button>
+                </div>
+            `;
+            document.body.appendChild(messageBox);
+            document.getElementById('close-message').addEventListener('click', () => {
+                messageBox.remove();
+            });
+        };
+
+        // Function to clear the form
+        const clearForm = () => {
+            document.getElementById('orcamento-numero').textContent = '';
+            document.getElementById('data-atual').textContent = '';
+            document.getElementById('validade-input').value = '30 dias';
+            document.getElementById('condicoes-pagamento-input').value = 'Avista';
+            document.getElementById('status-select').value = 'Pendente';
+            document.getElementById('cliente-nome').value = '';
+            document.getElementById('cliente-email').value = '';
+            document.getElementById('cliente-telefone').value = '';
+            
+            const itensTabela = document.getElementById('itens-tabela');
+            itensTabela.innerHTML = '';
+            document.getElementById('total-orcamento').textContent = 'R$ 0,00';
+            
+            // Re-generate budget number and date for a new one
+            const data = new Date();
+            const dia = String(data.getDate()).padStart(2, '0');
+            const mes = String(data.getMonth() + 1).padStart(2, '0');
+            const ano = data.getFullYear().toString().substring(2);
+            document.getElementById('data-atual').textContent = `${dia}/${mes}/${data.getFullYear()}`;
+            const numeroAleatorio = Math.floor(100 + Math.random() * 900);
+            document.getElementById('orcamento-numero').textContent = `${dia}${mes}${ano}-${numeroAleatorio}`;
+            
+            // Add a single item row to start
+            const addItem = document.getElementById('add-item-btn');
+            addItem.click();
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Wait for authentication
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                    console.log("Signed in with custom token.");
+                } else {
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously.");
+                }
+            } catch (error) {
+                console.error("Authentication error:", error);
+                showMessage('Erro', `Falha na autenticação: ${error.message}`, 'error');
+                return;
+            }
+
             const itensTabela = document.getElementById('itens-tabela');
             const addItemBtn = document.getElementById('add-item-btn');
             const totalOrcamentoSpan = document.getElementById('total-orcamento');
@@ -177,7 +259,7 @@
                     <td class="px-6 py-4"><input type="number" value="${qtd}" class="qtd w-20 px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 text-right"></td>
                     <td class="px-6 py-4"><input type="number" value="${valorUnit}" step="0.01" class="valor-unit w-24 px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 text-right"></td>
                     <td class="px-6 py-4 text-right item-total">R$ 0,00</td>
-                    <td class="px-6 py-4 text-right hide-on-pdf">
+                    <td class="px-6 py-4 text-right">
                         <button class="remover-item-btn text-red-600 hover:text-red-800 transition-colors">Remover</button>
                     </td>
                 `;
@@ -344,26 +426,55 @@
                 doc.save(`orcamento-${orcamentoNumero}.pdf`);
             });
 
-            // Botão Salvar
-            salvarBtn.addEventListener('click', () => {
-                const messageBox = document.createElement('div');
-                messageBox.classList.add('fixed', 'inset-0', 'bg-gray-800', 'bg-opacity-50', 'flex', 'items-center', 'justify-center', 'z-50');
-                messageBox.innerHTML = `
-                    <div class="bg-white rounded-lg p-6 shadow-xl">
-                        <p class="text-lg font-semibold text-gray-800 mb-4">Funcionalidade de salvar ainda não implementada.</p>
-                        <button id="close-message" class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">Fechar</button>
-                    </div>
-                `;
-                document.body.appendChild(messageBox);
-                document.getElementById('close-message').addEventListener('click', () => {
-                    messageBox.remove();
+            // Adicionar evento de salvar no Firebase
+            salvarBtn.addEventListener('click', async () => {
+                const userId = auth.currentUser?.uid || crypto.randomUUID();
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const orcamentoRef = doc(db, 'artifacts', appId, 'users', userId, 'orcamentos', orcamentoNumeroSpan.textContent);
+                
+                const itens = [];
+                document.querySelectorAll('#itens-tabela tr').forEach(row => {
+                    itens.push({
+                        descricao: row.querySelector('.descricao').value,
+                        qtd: parseFloat(row.querySelector('.qtd').value) || 0,
+                        valorUnit: parseFloat(row.querySelector('.valor-unit').value) || 0,
+                        totalItem: row.querySelector('.item-total').textContent
+                    });
                 });
+
+                const orcamentoData = {
+                    orcamentoNumero: orcamentoNumeroSpan.textContent,
+                    data: dataAtualSpan.textContent,
+                    validade: validadeInput.value,
+                    condicoesPagamento: condicoesPagamentoInput.value,
+                    status: statusSelect.value,
+                    cliente: {
+                        nome: document.getElementById('cliente-nome').value,
+                        email: document.getElementById('cliente-email').value,
+                        telefone: document.getElementById('cliente-telefone').value
+                    },
+                    itens: itens,
+                    total: totalOrcamentoSpan.textContent,
+                    createdAt: new Date()
+                };
+
+                try {
+                    await setDoc(orcamentoRef, orcamentoData);
+                    showMessage('Sucesso', 'Orçamento salvo com sucesso!');
+                    clearForm();
+                } catch (error) {
+                    console.error("Erro ao salvar o documento:", error);
+                    showMessage('Erro', 'Não foi possível salvar o orçamento. Tente novamente.', 'error');
+                }
             });
 
             // Botão Voltar
             voltarBtn.addEventListener('click', () => {
                 window.history.back();
             });
+
+            // Adicionar um item inicial
+            addItem();
         });
     </script>
 </body>
