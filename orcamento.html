@@ -151,14 +151,17 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
+        // Assegura que o jsPDF e autoTable estão disponíveis globalmente
         const { jsPDF } = window.jspdf;
         
         let db, authInstance, userId;
 
+        // Variáveis globais fornecidas pelo ambiente. NÃO modifique-as.
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
+        // --- Variáveis Globais ---
         const orcamentoForm = document.getElementById('orcamentoForm');
         const itemsContainer = document.getElementById('itemsContainer');
         const addItemBtn = document.getElementById('addItemBtn');
@@ -168,6 +171,7 @@
         const saveOnlyBtn = document.getElementById('saveOnlyBtn');
         const generatePdfBtn = document.getElementById('generatePdfBtn');
 
+        // --- Funções de Modal ---
         function showLoading() { loadingModal.classList.remove('hidden'); }
         function hideLoading() { loadingModal.classList.add('hidden'); }
         function showSuccessModal(title, message, showDownload = false) {
@@ -183,6 +187,7 @@
         }
         window.closeModal = () => { successModal.classList.add('hidden'); };
 
+        // --- Funções Firebase ---
         function initializeFirebase() {
             try {
                 const app = initializeApp(firebaseConfig);
@@ -226,6 +231,7 @@
             }
         }
 
+        // --- Funções do Formulário ---
         function addItemRow() {
             const newItemRow = document.createElement('div');
             newItemRow.className = 'item-row grid grid-cols-5 gap-4';
@@ -266,18 +272,22 @@
             totalValueSpan.textContent = total.toFixed(2).replace('.', ',');
         }
 
+        // --- Gerar PDF ---
         function generatePdf(data) {
             const doc = new jsPDF();
             
+            // Título
             doc.setFontSize(22);
             doc.text("Orçamento de Serviço", 105, 25, null, null, "center");
 
+            // Informações do Orçamento
             doc.setFontSize(12);
             doc.text(`Orçamento #: ${data.numeroOrcamento}`, 20, 40);
             doc.text(`Data: ${data.dataOrcamento}`, 20, 47);
             doc.text(`Validade: ${data.validade} dias`, 20, 54);
             doc.text(`Condições de Pagamento: ${data.paymentTerms || 'Não especificado'}`, 20, 61);
 
+            // Informações do Cliente
             doc.setFontSize(16);
             doc.text("Informações do Cliente", 20, 75);
             doc.setFontSize(12);
@@ -285,6 +295,7 @@
             doc.text(`Email: ${data.clientEmail || 'N/A'}`, 20, 92);
             doc.text(`Telefone: ${data.clientPhone || 'N/A'}`, 20, 99);
             
+            // Tabela de Itens
             const tableColumn = ["Descrição", "Qtd", "Valor Unit.", "Total"];
             const tableRows = [];
             let total = 0;
@@ -308,6 +319,7 @@
                 styles: { fontSize: 10, cellPadding: 2 },
             });
             
+            // Total e Assinatura
             doc.setFontSize(14);
             doc.text(`Total: R$ ${total.toFixed(2).replace('.', ',')}`, 170, doc.lastAutoTable.finalY + 10, null, null, "right");
             
@@ -322,7 +334,9 @@
             downloadLink.download = `orcamento-${data.numeroOrcamento}.pdf`;
         }
         
+        // --- Função para Salvar ou Salvar e Gerar PDF ---
         async function handleSaveAndGenerate(generatePdfFlag) {
+            // Verifica se o usuário está autenticado antes de prosseguir
             if (!userId) {
                 showSuccessModal('Aguarde', 'O aplicativo está se conectando ao Firebase. Por favor, aguarde alguns segundos e tente novamente.');
                 return;
@@ -379,6 +393,7 @@
             }
         }
         
+        // --- Event Listeners ---
         addItemBtn.addEventListener('click', addItemRow);
         
         document.getElementById('saveOnlyBtn').addEventListener('click', () => {
@@ -390,10 +405,11 @@
             handleSaveAndGenerate(true);
         });
         
+        // Inicialização
         document.addEventListener('DOMContentLoaded', () => {
             initializeFirebase();
-            addItemRow();
-            document.getElementById('numeroOrcamento').value = 'ORC-250903-4595';
+            addItemRow(); // Adiciona uma linha de item por padrão
+            document.getElementById('numeroOrcamento').value = 'ORC-250903-4595'; // Preenche o campo com o número específico
             const today = new Date();
             const yyyy = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
