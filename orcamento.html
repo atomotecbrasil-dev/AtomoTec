@@ -39,20 +39,20 @@
             </div>
             <div>
                 <p class="font-bold text-gray-700">Validade:</p>
-                <input type="text" value="30 dias" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" value="" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
             <div>
                 <p class="font-bold text-gray-700">Condições de Pagamento:</p>
-                <input type="text" value="Avista" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="text" value="" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
         </div>
 
         <div class="mb-8 p-6 bg-gray-50 rounded-lg">
             <h2 class="text-lg font-semibold text-gray-700 mb-4">Informações do Cliente</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input id="cliente-nome" type="text" placeholder="Nome" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input id="cliente-email" type="email" placeholder="Email" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <input id="cliente-telefone" type="tel" placeholder="Telefone" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input id="cliente-nome" type="text" placeholder="Nome" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input id="cliente-email" type="email" placeholder="Email" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input id="cliente-telefone" type="tel" placeholder="Telefone" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
         </div>
 
@@ -143,9 +143,9 @@
                 const newRow = document.createElement('tr');
                 newRow.classList.add('bg-white', 'border-b', 'hover:bg-gray-50');
                 newRow.innerHTML = `
-                    <td class="px-6 py-4"><input type="text" value="${descricao}" class="descricao w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"></td>
-                    <td class="px-6 py-4"><input type="number" value="${qtd}" class="qtd w-20 px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-right"></td>
-                    <td class="px-6 py-4"><input type="number" value="${valorUnit}" step="0.01" class="valor-unit w-24 px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 text-right"></td>
+                    <td class="px-6 py-4"><input type="text" value="${descricao}" class="descricao w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-green-500"></td>
+                    <td class="px-6 py-4"><input type="number" value="${qtd}" class="qtd w-20 px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 text-right"></td>
+                    <td class="px-6 py-4"><input type="number" value="${valorUnit}" step="0.01" class="valor-unit w-24 px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 text-right"></td>
                     <td class="px-6 py-4 text-right item-total">R$ 0,00</td>
                     <td class="px-6 py-4 text-right hide-on-pdf">
                         <button class="remover-item-btn text-red-600 hover:text-red-800 transition-colors">Remover</button>
@@ -176,10 +176,6 @@
 
             addItemBtn.addEventListener('click', () => addItem());
 
-            // Exemplo de itens iniciais
-            addItem('RJ45', 10, 3.00);
-            addItem('Cabo', 4, 350.00);
-
             // Gerar PDF de forma profissional
             gerarPdfBtn.addEventListener('click', () => {
                 const { jsPDF } = window.jspdf;
@@ -187,15 +183,23 @@
                 
                 let y = 20;
 
-                // Título e dados da empresa
+                // Faixa azul de cabeçalho
+                const blueColor = [59, 130, 246]; // Cor azul similar ao botão (Tailwind)
+                doc.setFillColor(...blueColor);
+                doc.rect(0, 0, doc.internal.pageSize.getWidth(), 30, 'F');
+                
+                // Título e dados da empresa em branco
                 doc.setFontSize(24);
+                doc.setTextColor(255, 255, 255);
                 doc.text("Orçamento de Serviço", 105, y, null, null, "center");
                 y += 10;
                 doc.setFontSize(14);
                 doc.text("AtomoTech", 105, y, null, null, "center");
                 y += 10;
-                doc.line(20, y, 190, y); // Linha separadora
-                y += 10;
+                
+                // Mudar a cor do texto de volta para preto para o resto do documento
+                doc.setTextColor(0, 0, 0);
+                y += 5;
 
                 // Dados do orçamento
                 doc.setFontSize(12);
@@ -236,6 +240,7 @@
                     startY: y,
                     theme: 'grid',
                     styles: { cellPadding: 2, fontSize: 10 },
+                    headStyles: { fillColor: blueColor, textColor: 255 }, // Cabeçalho azul com texto branco
                     columnStyles: {
                         0: { cellWidth: 'auto' },
                         1: { cellWidth: 20 },
