@@ -55,7 +55,7 @@
             <!-- Logo e Nome da Empresa -->
             <div class="flex items-center">
                 <img src="logo.png" alt="AtomoTech Logo" class="h-8 mr-2">
-                <h1 class="text-3xl font-bold">AtomoTech01</h1>
+                <h1 class="text-3xl font-bold">AtomoTech</h1>
             </div>
             
             <div class="flex items-center space-x-4">
@@ -607,25 +607,28 @@
         // --- Lógica de Filtros ---
         function applyFilters() {
             showLoading();
-            const status = document.getElementById('status-filter').value;
-            const cliente = document.getElementById('cliente-filter').value.toLowerCase();
-            const startDate = document.getElementById('start-date-filter').value;
-            const endDate = document.getElementById('end-date-filter').value;
-            
-            const filteredDocs = currentDocuments.filter(doc => {
-                const matchStatus = !status || doc.status === status;
-                const matchCliente = !cliente || (doc.cliente?.nome && doc.cliente.nome.toLowerCase().includes(cliente));
+            // Atraso artificial para que o usuário consiga ver o feedback de carregamento
+            setTimeout(() => {
+                const status = document.getElementById('status-filter').value;
+                const cliente = document.getElementById('cliente-filter').value.toLowerCase();
+                const startDate = document.getElementById('start-date-filter').value;
+                const endDate = document.getElementById('end-date-filter').value;
                 
-                const docDate = doc.data ? new Date(doc.data) : null;
-                const matchStartDate = !startDate || (docDate && docDate >= new Date(startDate));
-                const matchEndDate = !endDate || (docDate && docDate <= new Date(endDate));
+                const filteredDocs = currentDocuments.filter(doc => {
+                    const matchStatus = !status || doc.status === status;
+                    const matchCliente = !cliente || (doc.cliente?.nome && doc.cliente.nome.toLowerCase().includes(cliente));
+                    
+                    const docDate = doc.data ? new Date(doc.data) : null;
+                    const matchStartDate = !startDate || (docDate && docDate >= new Date(startDate));
+                    const matchEndDate = !endDate || (docDate && docDate <= new Date(endDate));
 
-                return matchStatus && matchCliente && matchStartDate && matchEndDate;
-            });
-            
-            const listElementId = activeCollection === 'orcamentos' ? 'orcamentos-list' : 'os-list';
-            renderDocuments(filteredDocs, listElementId);
-            hideLoading();
+                    return matchStatus && matchCliente && matchStartDate && matchEndDate;
+                });
+                
+                const listElementId = activeCollection === 'orcamentos' ? 'orcamentos-list' : 'os-list';
+                renderDocuments(filteredDocs, listElementId);
+                hideLoading();
+            }, 1000); // 1 segundo de atraso
         }
 
         function resetFilters() {
