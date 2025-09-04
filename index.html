@@ -67,13 +67,13 @@
                     <i class="fa-solid fa-list-check text-4xl text-yellow-600 mb-4"></i>
                     <h3 class="text-xl font-semibold mb-2">Gerenciar Documentos</h3>
                     <p class="text-gray-600 mb-4">Visualize e edite todas as suas ordens de serviço e orçamentos.</p>
-                    <button onclick="loadView('list')" class="px-6 py-2 bg-yellow-600 text-white rounded-lg shadow hover:bg-yellow-700 transition-colors">
+                    <button onclick="window.location.href = 'dashboard.html';" class="px-6 py-2 bg-yellow-600 text-white rounded-lg shadow hover:bg-yellow-700 transition-colors">
                         Gerenciar
                     </button>
                 </div>
             </div>
 
-            <!-- Seção de Lista de Documentos (escondida por padrão) -->
+            <!-- Seção de Lista de Documentos (escondida por padrão, agora será em dashboard.html) -->
             <div id="list-view" class="view hidden">
                 <h2 class="text-2xl font-semibold mb-4 text-gray-800">Documentos Recentes</h2>
                 <div class="bg-white p-6 rounded-lg shadow-md">
@@ -115,9 +115,9 @@
             appId: "1:307660458127:web:853844133b6cf7c7e788fa",
             measurementId: "G-WB5BZPR532"
         };
-
-        const appId = firebaseConfig.projectId;
         
+        const appId = firebaseConfig.projectId;
+
         // --- Funções de Modal para Mensagens ---
         function showMessage(title, body) {
             document.getElementById('message-title').textContent = title;
@@ -157,60 +157,6 @@
             }
         }
         
-        // --- Gerenciar visualizações ---
-        async function loadView(viewName) {
-            document.querySelectorAll('.view').forEach(view => {
-                view.classList.add('hidden');
-            });
-            document.getElementById(`${viewName}-view`).classList.remove('hidden');
-
-            if (viewName === 'list') {
-                await fetchDocuments();
-            }
-        }
-        
-        // --- Buscar documentos no Firestore ---
-        async function fetchDocuments() {
-            if (!userId) {
-                showMessage('Aviso', 'Aguarde a conexão com o Firebase ser estabelecida.');
-                return;
-            }
-            
-            const documentsList = document.getElementById('documents-list');
-            documentsList.innerHTML = '<p class="text-gray-500">Carregando documentos...</p>';
-            
-            const docsRef = collection(db, `artifacts/${appId}/public/data/ordens_servico`);
-            const q = query(docsRef);
-            
-            try {
-                const querySnapshot = await getDocs(q);
-                if (querySnapshot.empty) {
-                    documentsList.innerHTML = '<p class="text-gray-500">Nenhum documento encontrado.</p>';
-                    return;
-                }
-                
-                documentsList.innerHTML = '';
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const li = document.createElement('li');
-                    li.className = 'bg-gray-100 p-4 rounded-md shadow-sm mb-2 hover:bg-gray-200 transition-colors';
-                    li.innerHTML = `
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="font-bold text-gray-800">${data.documentId} - ${data.clientName}</h4>
-                                <p class="text-sm text-gray-600">Tipo: ${data.type.toUpperCase()} | Status: ${data.status}</p>
-                            </div>
-                        </div>
-                    `;
-                    documentsList.appendChild(li);
-                });
-            } catch (error) {
-                console.error("Erro ao buscar documentos:", error);
-                documentsList.innerHTML = '<p class="text-red-500">Erro ao carregar documentos.</p>';
-                showMessage('Erro', 'Não foi possível buscar os documentos. Verifique o console para mais detalhes.');
-            }
-        }
-        
         // Expor funções para o escopo global para o `onclick` dos botões.
         window.closeModal = closeModal;
         window.loadView = loadView;
@@ -220,6 +166,17 @@
         window.onload = () => {
             initializeFirebase();
         };
+        // A função loadView foi removida daqui, pois o gerenciamento de documentos agora será feito em outra página.
+        function loadView(viewName) {
+            if (viewName === 'list') {
+                window.location.href = 'dashboard.html';
+            }
+        }
+        
+        function fetchDocuments() {
+            // Esta função não é mais necessária aqui, mas é mantida como um placeholder para evitar erros.
+            console.log("A função fetchDocuments agora está no dashboard.html.");
+        }
     </script>
 </body>
 </html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Documentos - AtomoTech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .header {
+            background-color: #0d47a1;
+        }
+        .tab-button.active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="header text-white p-4 shadow-lg fixed top-0 left-0 right-0 z-50">
+        <div class="container mx-auto flex items-center justify-between">
+            <!-- Botão de Voltar -->
+            <button onclick="window.history.back();" class="text-white hover:text-gray-200 transition-colors mr-4">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </button>
+            
+            <!-- Logo e Nome da Empresa -->
+            <div class="flex items-center">
+                <img src="logo.png" alt="AtomoTech Logo" class="h-8 mr-2">
+                <h1 class="text-3xl font-bold">AtomoTech</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <span id="user-status" class="text-sm font-medium">Conectando...</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 mt-20 p-4 sm:p-6 lg:p-8">
+        <div class="container mx-auto">
+            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Gerenciar Documentos</h2>
+            
+            <!-- Interface de Abas -->
+            <div class="flex mb-4 border-b border-gray-200">
+                <button id="orcamento-tab" class="tab-button active px-4 py-2 font-medium text-gray-600 hover:text-blue-500 transition-colors">Orçamentos</button>
+                <button id="os-tab" class="tab-button px-4 py-2 font-medium text-gray-600 hover:text-blue-500 transition-colors">Ordens de Serviço</button>
+            </div>
+            
+            <!-- Conteúdo das Abas -->
+            <div id="orcamento-content" class="tab-content bg-white p-6 rounded-lg shadow-md">
+                <ul id="orcamentos-list" class="space-y-4">
+                    <p class="text-gray-500">Carregando orçamentos...</p>
+                </ul>
+            </div>
+            
+            <div id="os-content" class="tab-content hidden bg-white p-6 rounded-lg shadow-md">
+                <ul id="os-list" class="space-y-4">
+                    <p class="text-gray-500">Carregando ordens de serviço...</p>
+                </ul>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal para Mensagens -->
+    <div id="message-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">
+            <h3 id="message-title" class="text-lg font-bold mb-2"></h3>
+            <p id="message-body" class="mb-4"></p>
+            <div class="flex justify-end">
+                <button onclick="closeModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, getDocs, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        let db, authInstance;
+        let userId = null;
+        
+        // Configuração do Firebase com suas credenciais
+        const firebaseConfig = {
+            apiKey: "AIzaSyBD5NJXU1YBb1tbWAtaO8tyx21x5UwDs58",
+            authDomain: "atomotech-gestao.firebaseapp.com",
+            projectId: "atomotech-gestao",
+            storageBucket: "atomotech-gestao.firebasestorage.app",
+            messagingSenderId: "307660458127",
+            appId: "1:307660458127:web:853844133b6cf7c7e788fa",
+            measurementId: "G-WB5BZPR532"
+        };
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = firebaseConfig.projectId;
+        
+        // --- Funções de Modal para Mensagens ---
+        function showMessage(title, body) {
+            document.getElementById('message-title').textContent = title;
+            document.getElementById('message-body').textContent = body;
+            document.getElementById('message-modal').classList.remove('hidden');
+        }
+        
+        function closeModal() {
+            document.getElementById('message-modal').classList.add('hidden');
+        }
+        
+        // --- Inicialização do Firebase ---
+        function initializeFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                authInstance = getAuth(app);
+                
+                onAuthStateChanged(authInstance, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('user-status').textContent = `Conectado como ${userId.substring(0, 8)}...`;
+                        console.log("Usuário autenticado:", userId);
+                        // Inicia a busca dos documentos após a autenticação
+                        fetchDocuments('orcamentos', 'orcamentos-list');
+                        fetchDocuments('ordens_servico', 'os-list');
+                    } else {
+                        // Tenta autenticação anônima se não houver usuário logado
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(authInstance, initialAuthToken);
+                        } else {
+                            await signInAnonymously(authInstance);
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Erro ao inicializar Firebase:", error);
+                showMessage('Erro de Inicialização', 'Ocorreu um erro ao inicializar o Firebase. Verifique a configuração.');
+            }
+        }
+        
+        // --- Buscar documentos no Firestore ---
+        async function fetchDocuments(collectionName, listElementId) {
+            if (!userId) {
+                console.error("Usuário não autenticado. Não é possível buscar documentos.");
+                return;
+            }
+            
+            const documentsList = document.getElementById(listElementId);
+            documentsList.innerHTML = `<p class="text-gray-500">Carregando ${collectionName}...</p>`;
+            
+            const docsRef = collection(db, `artifacts/${appId}/users/${userId}/${collectionName}`);
+            const q = query(docsRef);
+            
+            try {
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                    documentsList.innerHTML = `<p class="text-gray-500">Nenhum documento encontrado.</p>`;
+                    return;
+                }
+                
+                documentsList.innerHTML = '';
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const li = document.createElement('li');
+                    li.className = 'bg-gray-100 p-4 rounded-md shadow-sm mb-2 hover:bg-gray-200 transition-colors';
+                    li.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-bold text-gray-800">${doc.id} - ${data.cliente ? data.cliente.nome : 'Sem Nome'}</h4>
+                                <p class="text-sm text-gray-600">
+                                    Data: ${data.data || 'N/A'} | Status: 
+                                    <span class="font-semibold" style="color: ${getStatusColor(data.status)};">
+                                        ${data.status || 'N/A'}
+                                    </span>
+                                </p>
+                            </div>
+                            <!-- Implementar botão de visualização/edição futuramente -->
+                            <!-- <button class="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs">Ver</button> -->
+                        </div>
+                    `;
+                    documentsList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Erro ao buscar documentos:", error);
+                documentsList.innerHTML = '<p class="text-red-500">Erro ao carregar documentos.</p>';
+                showMessage('Erro', 'Não foi possível buscar os documentos. Verifique o console para mais detalhes.');
+            }
+        }
+        
+        function getStatusColor(status) {
+            switch (status) {
+                case 'Aprovado':
+                    return '#22c55e'; // green-500
+                case 'Pendente':
+                    return '#f97316'; // orange-500
+                case 'Rejeitado':
+                case 'Cancelado':
+                    return '#ef4444'; // red-500
+                default:
+                    return '#6b7280'; // gray-500
+            }
+        }
+        
+        // Lógica para alternar as abas
+        function setupTabs() {
+            const tabs = document.querySelectorAll('.tab-button');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    contents.forEach(content => content.classList.add('hidden'));
+                    const targetId = tab.id.replace('-tab', '-content');
+                    document.getElementById(targetId).classList.remove('hidden');
+                });
+            });
+        }
+        
+        // Expor funções para o escopo global
+        window.closeModal = closeModal;
+        
+        // Configuração inicial.
+        window.onload = () => {
+            initializeFirebase();
+            setupTabs();
+        };
+    </script>
+</body>
+</html>
