@@ -37,6 +37,11 @@
     </style>
 </head>
 <body class="bg-gray-100 flex flex-col items-center py-10 min-h-screen relative">
+    <!-- Indicador de Conexão -->
+    <div id="connectionStatus" class="fixed top-4 right-4 bg-gray-200 text-gray-700 px-3 py-1 rounded-full shadow-md text-sm font-medium z-50">
+        Conectando...
+    </div>
+
     <div class="logo-container hidden">
         <img src="https://placehold.co/600x400/0d47a1/ffffff?text=AtomoTech+Logo" alt="Logomarca da AtomoTech">
     </div>
@@ -151,7 +156,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // Assegura que o jsPDF e autoTable estão disponíveis globalmente
         const { jsPDF } = window.jspdf;
         
         let db, authInstance, userId;
@@ -170,6 +174,7 @@
         const loadingModal = document.getElementById('loading-modal');
         const saveOnlyBtn = document.getElementById('saveOnlyBtn');
         const generatePdfBtn = document.getElementById('generatePdfBtn');
+        const connectionStatusEl = document.getElementById('connectionStatus');
 
         // --- Funções de Modal ---
         function showLoading() { loadingModal.classList.remove('hidden'); }
@@ -195,6 +200,26 @@
                 db = getFirestore(app);
                 setLogLevel('Debug');
                 
+                onAuthStateChanged(authInstance, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        connectionStatusEl.textContent = 'Conectado';
+                        connectionStatusEl.classList.remove('bg-gray-200');
+                        connectionStatusEl.classList.add('bg-green-500', 'text-white');
+                        console.log("Usuário autenticado:", userId);
+                        saveOnlyBtn.disabled = false;
+                        generatePdfBtn.disabled = false;
+                    } else {
+                        userId = null;
+                        connectionStatusEl.textContent = 'Desconectado';
+                        connectionStatusEl.classList.remove('bg-gray-200');
+                        connectionStatusEl.classList.add('bg-red-500', 'text-white');
+                        saveOnlyBtn.disabled = true;
+                        generatePdfBtn.disabled = true;
+                        console.log("Usuário não autenticado. Botões desabilitados.");
+                    }
+                });
+
                 if (initialAuthToken) {
                     signInWithCustomToken(authInstance, initialAuthToken)
                         .then(() => {
@@ -211,23 +236,12 @@
                     });
                 }
 
-                onAuthStateChanged(authInstance, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        console.log("Usuário autenticado:", userId);
-                        saveOnlyBtn.disabled = false;
-                        generatePdfBtn.disabled = false;
-                    } else {
-                        userId = null;
-                        saveOnlyBtn.disabled = true;
-                        generatePdfBtn.disabled = true;
-                        console.log("Usuário não autenticado. Botões desabilitados.");
-                    }
-                });
-
             } catch (error) {
                 showSuccessModal('Erro de Inicialização', 'Ocorreu um erro ao inicializar o Firebase. Verifique a configuração.');
                 console.error("Erro ao inicializar Firebase:", error);
+                connectionStatusEl.textContent = 'Erro';
+                connectionStatusEl.classList.remove('bg-gray-200');
+                connectionStatusEl.classList.add('bg-red-500', 'text-white');
             }
         }
 
@@ -336,12 +350,8 @@
         
         // --- Função para Salvar ou Salvar e Gerar PDF ---
         async function handleSaveAndGenerate(generatePdfFlag) {
-            // Verifica se o usuário está autenticado antes de prosseguir
-            if (!userId) {
-                showSuccessModal('Aguarde', 'O aplicativo está se conectando ao Firebase. Por favor, aguarde alguns segundos e tente novamente.');
-                return;
-            }
-
+            // A verificação de userId não é mais a única barreira, a habilitação dos botões
+            // já garante que a conexão está pronta.
             showLoading();
 
             const numeroOrcamento = document.getElementById('numeroOrcamento').value;
@@ -409,7 +419,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initializeFirebase();
             addItemRow(); // Adiciona uma linha de item por padrão
-            document.getElementById('numeroOrcamento').value = 'ORC-250903-4595'; // Preenche o campo com o número específico
+            document.getElementById('numeroOrcamento').value = 'ORC-250903-4595'; // Preenche o campo com um número padrão
             const today = new Date();
             const yyyy = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
