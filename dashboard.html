@@ -43,7 +43,7 @@
             <!-- Logo e Nome da Empresa -->
             <div class="flex items-center">
                 <img src="logo.png" alt="AtomoTech Logo" class="h-8 mr-2">
-                <h1 class="text-3xl font-bold">AtomoTech</h1>
+                <h1 class="text-3xl font-bold">AtomoTech01</h1>
             </div>
             
             <div class="flex items-center space-x-4">
@@ -238,7 +238,7 @@
             measurementId: "G-WB5BZPR532"
         };
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        const appId = firebaseConfig.projectId;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId;
 
         // --- Funções de Modal para Mensagens ---
         function showMessage(title, body) {
@@ -455,7 +455,12 @@
                     } else {
                         console.log("Usuário não autenticado. Tentando entrar com token...");
                         if (initialAuthToken) {
-                            await signInWithCustomToken(authInstance, initialAuthToken);
+                            try {
+                                await signInWithCustomToken(authInstance, initialAuthToken);
+                            } catch(e) {
+                                console.error("Erro ao autenticar com token:", e);
+                                showMessage('Erro Crítico', `Não foi possível inicializar a aplicação: Firebase: ${e.code}. Verifique a chave de API.`);
+                            }
                         } else {
                             await signInAnonymously(authInstance);
                         }
