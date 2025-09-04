@@ -55,7 +55,7 @@
             <!-- Logo e Nome da Empresa -->
             <div class="flex items-center">
                 <img src="logo.png" alt="AtomoTech Logo" class="h-8 mr-2">
-                <h1 class="text-3xl font-bold">AtomoTech</h1>
+                <h1 class="text-3xl font-bold">AtomoTech01</h1>
             </div>
             
             <div class="flex items-center space-x-4">
@@ -151,8 +151,8 @@
                     </table>
                 </div>
             </div>
-            <!-- Div para a Saída de Depuração (oculta por padrão) -->
-            <div id="debug-output" class="hidden mt-6 p-4 bg-gray-800 text-gray-100 rounded-lg shadow-inner font-mono">
+            <!-- Div para a Saída de Depuração (agora visível por padrão) -->
+            <div id="debug-output" class="mt-6 p-4 bg-gray-800 text-gray-100 rounded-lg shadow-inner font-mono">
                 <h3 class="font-bold mb-2">Saída de Depuração</h3>
                 <pre id="debug-pre"></pre>
             </div>
@@ -509,7 +509,7 @@
                 onAuthStateChanged(authInstance, async (user) => {
                     if (user) {
                         userId = user.uid;
-                        document.getElementById('user-status').textContent = `Conectado como ${userId.substring(0, 8)}...`;
+                        document.getElementById('user-status').textContent = `Conectado como: ${userId}`;
                         console.log("Usuário autenticado. UID:", userId);
                         subscribeToDocuments(activeCollection);
                     } else {
