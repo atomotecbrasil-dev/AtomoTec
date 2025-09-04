@@ -151,17 +151,14 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // Assegura que o jsPDF e autoTable estão disponíveis globalmente
         const { jsPDF } = window.jspdf;
         
         let db, authInstance, userId;
 
-        // Variáveis globais fornecidas pelo ambiente. NÃO modifique-as.
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
-        // --- Variáveis Globais ---
         const orcamentoForm = document.getElementById('orcamentoForm');
         const itemsContainer = document.getElementById('itemsContainer');
         const addItemBtn = document.getElementById('addItemBtn');
@@ -171,7 +168,6 @@
         const saveOnlyBtn = document.getElementById('saveOnlyBtn');
         const generatePdfBtn = document.getElementById('generatePdfBtn');
 
-        // --- Funções de Modal ---
         function showLoading() { loadingModal.classList.remove('hidden'); }
         function hideLoading() { loadingModal.classList.add('hidden'); }
         function showSuccessModal(title, message, showDownload = false) {
@@ -187,47 +183,49 @@
         }
         window.closeModal = () => { successModal.classList.add('hidden'); };
 
-        // --- Funções Firebase ---
         function initializeFirebase() {
             try {
                 const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
                 authInstance = getAuth(app);
+                db = getFirestore(app);
                 setLogLevel('Debug');
                 
+                if (initialAuthToken) {
+                    signInWithCustomToken(authInstance, initialAuthToken)
+                        .then(() => {
+                            console.log("Autenticação com token personalizado bem-sucedida.");
+                        })
+                        .catch((error) => {
+                            console.error("Erro na autenticação com token personalizado:", error);
+                            // Fallback para autenticação anônima se o token falhar
+                            signInAnonymously(authInstance).catch((e) => console.error("Erro na autenticação anônima:", e));
+                        });
+                } else {
+                    signInAnonymously(authInstance).catch((error) => {
+                        console.error("Erro na autenticação anônima:", error);
+                    });
+                }
+
                 onAuthStateChanged(authInstance, (user) => {
                     if (user) {
                         userId = user.uid;
                         console.log("Usuário autenticado:", userId);
-                        // Habilita os botões de salvar/gerar PDF
                         saveOnlyBtn.disabled = false;
                         generatePdfBtn.disabled = false;
                     } else {
-                        signInAnonymously(authInstance).then(() => {
-                            userId = authInstance.currentUser.uid;
-                            console.log("Usuário autenticado anonimamente:", userId);
-                            saveOnlyBtn.disabled = false;
-                            generatePdfBtn.disabled = false;
-                        }).catch((error) => {
-                            showSuccessModal('Erro', 'Erro ao autenticar com o Firebase. Por favor, verifique sua conexão de rede.');
-                            console.error("Erro na autenticação anônima:", error);
-                        });
+                        userId = null;
+                        saveOnlyBtn.disabled = true;
+                        generatePdfBtn.disabled = true;
+                        console.log("Usuário não autenticado. Botões desabilitados.");
                     }
                 });
 
-                if (initialAuthToken) {
-                    signInWithCustomToken(authInstance, initialAuthToken).catch((error) => {
-                        console.error("Erro ao autenticar com token personalizado:", error);
-                    });
-                }
-
             } catch (error) {
-                showSuccessModal('Erro', 'Erro ao inicializar o aplicativo. Por favor, recarregue a página.');
+                showSuccessModal('Erro de Inicialização', 'Ocorreu um erro ao inicializar o Firebase. Verifique a configuração.');
                 console.error("Erro ao inicializar Firebase:", error);
             }
         }
 
-        // --- Funções do Formulário ---
         function addItemRow() {
             const newItemRow = document.createElement('div');
             newItemRow.className = 'item-row grid grid-cols-5 gap-4';
@@ -268,22 +266,18 @@
             totalValueSpan.textContent = total.toFixed(2).replace('.', ',');
         }
 
-        // --- Gerar PDF ---
         function generatePdf(data) {
             const doc = new jsPDF();
             
-            // Título
             doc.setFontSize(22);
             doc.text("Orçamento de Serviço", 105, 25, null, null, "center");
 
-            // Informações do Orçamento
             doc.setFontSize(12);
             doc.text(`Orçamento #: ${data.numeroOrcamento}`, 20, 40);
             doc.text(`Data: ${data.dataOrcamento}`, 20, 47);
             doc.text(`Validade: ${data.validade} dias`, 20, 54);
             doc.text(`Condições de Pagamento: ${data.paymentTerms || 'Não especificado'}`, 20, 61);
 
-            // Informações do Cliente
             doc.setFontSize(16);
             doc.text("Informações do Cliente", 20, 75);
             doc.setFontSize(12);
@@ -291,7 +285,6 @@
             doc.text(`Email: ${data.clientEmail || 'N/A'}`, 20, 92);
             doc.text(`Telefone: ${data.clientPhone || 'N/A'}`, 20, 99);
             
-            // Tabela de Itens
             const tableColumn = ["Descrição", "Qtd", "Valor Unit.", "Total"];
             const tableRows = [];
             let total = 0;
@@ -315,7 +308,6 @@
                 styles: { fontSize: 10, cellPadding: 2 },
             });
             
-            // Total e Assinatura
             doc.setFontSize(14);
             doc.text(`Total: R$ ${total.toFixed(2).replace('.', ',')}`, 170, doc.lastAutoTable.finalY + 10, null, null, "right");
             
@@ -330,10 +322,7 @@
             downloadLink.download = `orcamento-${data.numeroOrcamento}.pdf`;
         }
         
-        // --- Função para Salvar ou Salvar e Gerar PDF ---
         async function handleSaveAndGenerate(generatePdfFlag) {
-            // Esta verificação se torna redundante com os botões desabilitados,
-            // mas é um bom "plano B" de segurança.
             if (!userId) {
                 showSuccessModal('Aguarde', 'O aplicativo está se conectando ao Firebase. Por favor, aguarde alguns segundos e tente novamente.');
                 return;
@@ -390,7 +379,6 @@
             }
         }
         
-        // --- Event Listeners ---
         addItemBtn.addEventListener('click', addItemRow);
         
         document.getElementById('saveOnlyBtn').addEventListener('click', () => {
@@ -402,11 +390,10 @@
             handleSaveAndGenerate(true);
         });
         
-        // Inicialização
         document.addEventListener('DOMContentLoaded', () => {
             initializeFirebase();
-            addItemRow(); // Adiciona uma linha de item por padrão
-            document.getElementById('numeroOrcamento').value = 'ORC-250903-4595'; // Preenche o campo com o número específico
+            addItemRow();
+            document.getElementById('numeroOrcamento').value = 'ORC-250903-4595';
             const today = new Date();
             const yyyy = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -416,226 +403,6 @@
                 input.addEventListener('input', calculateTotal);
             });
         });
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AtomoTech - Gestão</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-        }
-        .header {
-            background-color: #0d47a1;
-        }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col">
-    <!-- Header -->
-    <header class="header text-white p-4 shadow-lg fixed top-0 left-0 right-0 z-50">
-        <div class="container mx-auto flex items-center justify-between">
-            <h1 class="text-3xl font-bold">AtomoTech</h1>
-            <div class="flex items-center space-x-4">
-                <span id="user-status" class="text-sm font-medium">Conectando...</span>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="flex-1 mt-20 p-4 sm:p-6 lg:p-8">
-        <div class="container mx-auto">
-            <h2 class="text-2xl font-semibold mb-6 text-gray-800">Painel de Gestão</h2>
-
-            <!-- Botões de Ação -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-lg shadow-md flex flex-col items-center text-center">
-                    <i class="fa-solid fa-file-invoice-dollar text-4xl text-green-600 mb-4"></i>
-                    <h3 class="text-xl font-semibold mb-2">Novo Orçamento</h3>
-                    <p class="text-gray-600 mb-4">Crie e envie orçamentos profissionais para seus clientes.</p>
-                    <button onclick="window.location.href = 'orcamento.html';" class="px-6 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors">
-                        Criar Orçamento
-                    </button>
-                </div>
-
-                <div class="bg-white p-6 rounded-lg shadow-md flex flex-col items-center text-center">
-                    <i class="fa-solid fa-tools text-4xl text-blue-600 mb-4"></i>
-                    <h3 class="text-xl font-semibold mb-2">Nova Ordem de Serviço</h3>
-                    <p class="text-gray-600 mb-4">Gerencie serviços e colete assinaturas digitais.</p>
-                    <button onclick="window.location.href = 'nova_os.html';" class="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
-                        Criar Ordem de Serviço
-                    </button>
-                </div>
-
-                <div class="bg-white p-6 rounded-lg shadow-md flex flex-col items-center text-center">
-                    <i class="fa-solid fa-list-check text-4xl text-yellow-600 mb-4"></i>
-                    <h3 class="text-xl font-semibold mb-2">Gerenciar Documentos</h3>
-                    <p class="text-gray-600 mb-4">Visualize e edite todas as suas ordens de serviço e orçamentos.</p>
-                    <button onclick="loadView('list')" class="px-6 py-2 bg-yellow-600 text-white rounded-lg shadow hover:bg-yellow-700 transition-colors">
-                        Gerenciar
-                    </button>
-                </div>
-            </div>
-
-            <!-- Seção de Lista de Documentos (escondida por padrão) -->
-            <div id="list-view" class="view hidden">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Documentos Recentes</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <ul id="documents-list">
-                        <p class="text-gray-500">Nenhum documento encontrado.</p>
-                    </ul>
-                </div>
-            </div>
-
-        </div>
-    </main>
-
-    <!-- Modal para Mensagens -->
-    <div id="message-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">
-            <h3 id="message-title" class="text-lg font-bold mb-2"></h3>
-            <p id="message-body" class="mb-4"></p>
-            <div class="flex justify-end">
-                <button onclick="closeModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">OK</button>
-            </div>
-        </div>
-    </div>
-    
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        let db, authInstance;
-        let userId = null;
-        
-        // Configuração do Firebase com suas credenciais
-        const firebaseConfig = {
-            apiKey: "AIzaSyBD5NJXU1YBb1tbWAtaO8tyx21x5UwDs58",
-            authDomain: "atomotech-gestao.firebaseapp.com",
-            projectId: "atomotech-gestao",
-            storageBucket: "atomotech-gestao.firebasestorage.app",
-            messagingSenderId: "307660458127",
-            appId: "1:307660458127:web:853844133b6cf7c7e788fa",
-            measurementId: "G-WB5BZPR532"
-        };
-
-        const appId = firebaseConfig.projectId;
-        
-        // --- Funções de Modal para Mensagens ---
-        function showMessage(title, body) {
-            document.getElementById('message-title').textContent = title;
-            document.getElementById('message-body').textContent = body;
-            document.getElementById('message-modal').classList.remove('hidden');
-        }
-        
-        function closeModal() {
-            document.getElementById('message-modal').classList.add('hidden');
-        }
-        
-        // --- Inicialização do Firebase ---
-        function initializeFirebase() {
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                authInstance = getAuth(app);
-                
-                onAuthStateChanged(authInstance, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        document.getElementById('user-status').textContent = `Conectado como ${userId.substring(0, 8)}...`;
-                        console.log("Usuário autenticado:", userId);
-                    } else {
-                        signInAnonymously(authInstance).then(() => {
-                            userId = authInstance.currentUser.uid;
-                            document.getElementById('user-status').textContent = `Conectado como ${userId.substring(0, 8)}...`;
-                        }).catch((error) => {
-                            console.error("Erro na autenticação anônima:", error);
-                            showMessage('Erro de Conexão', 'Não foi possível conectar ao sistema. Tente novamente.');
-                        });
-                    }
-                });
-            } catch (error) {
-                console.error("Erro ao inicializar Firebase:", error);
-                showMessage('Erro de Inicialização', 'Ocorreu um erro ao inicializar o Firebase. Verifique a configuração.');
-            }
-        }
-        
-        // --- Gerenciar visualizações ---
-        async function loadView(viewName) {
-            document.querySelectorAll('.view').forEach(view => {
-                view.classList.add('hidden');
-            });
-            document.getElementById(`${viewName}-view`).classList.remove('hidden');
-
-            if (viewName === 'list') {
-                await fetchDocuments();
-            }
-        }
-        
-        // --- Buscar documentos no Firestore ---
-        async function fetchDocuments() {
-            if (!userId) {
-                showMessage('Aviso', 'Aguarde a conexão com o Firebase ser estabelecida.');
-                return;
-            }
-            
-            const documentsList = document.getElementById('documents-list');
-            documentsList.innerHTML = '<p class="text-gray-500">Carregando documentos...</p>';
-            
-            const docsRef = collection(db, `artifacts/${appId}/public/data/ordens_servico`);
-            const q = query(docsRef);
-            
-            try {
-                const querySnapshot = await getDocs(q);
-                if (querySnapshot.empty) {
-                    documentsList.innerHTML = '<p class="text-gray-500">Nenhum documento encontrado.</p>';
-                    return;
-                }
-                
-                documentsList.innerHTML = '';
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const li = document.createElement('li');
-                    li.className = 'bg-gray-100 p-4 rounded-md shadow-sm mb-2 hover:bg-gray-200 transition-colors';
-                    li.innerHTML = `
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="font-bold text-gray-800">${data.documentId} - ${data.clientName}</h4>
-                                <p class="text-sm text-gray-600">Tipo: ${data.type.toUpperCase()} | Status: ${data.status}</p>
-                            </div>
-                        </div>
-                    `;
-                    documentsList.appendChild(li);
-                });
-            } catch (error) {
-                console.error("Erro ao buscar documentos:", error);
-                documentsList.innerHTML = '<p class="text-red-500">Erro ao carregar documentos.</p>';
-                showMessage('Erro', 'Não foi possível buscar os documentos. Verifique o console para mais detalhes.');
-            }
-        }
-        
-        // Expor funções para o escopo global para o `onclick` dos botões.
-        window.closeModal = closeModal;
-        window.loadView = loadView;
-        window.fetchDocuments = fetchDocuments;
-        
-        // Configuração inicial.
-        window.onload = () => {
-            initializeFirebase();
-        };
     </script>
 </body>
 </html>
