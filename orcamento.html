@@ -57,7 +57,7 @@
             </div>
             <div>
                 <div>
-                <p class="font-bold text-gray-700">Validade9090:</p>
+                <p class="font-bold text-gray-700">Validade:</p>
                 <input id="validade-input" type="text" value="30 dias" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
             </div>
@@ -143,13 +143,14 @@
             const messageBox = document.createElement('div');
             messageBox.classList.add('fixed', 'inset-0', 'bg-gray-800', 'bg-opacity-50', 'flex', 'items-center', 'justify-center', 'z-50');
             const boxColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const closeBtnColor = type === 'success' ? 'bg-green-600' : 'bg-red-600';
             messageBox.innerHTML = `
                 <div class="bg-white rounded-lg p-6 shadow-xl w-80 text-center">
                     <div class="p-4 ${boxColor} text-white rounded-t-md mb-4">
                         <p class="text-xl font-bold">${title}</p>
                     </div>
                     <p class="text-lg font-semibold text-gray-800 mb-4">${message}</p>
-                    <button id="close-message" class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">Fechar</button>
+                    <button id="close-message" class="w-full px-4 py-2 ${closeBtnColor} text-white rounded-md hover:bg-opacity-80 transition-colors">Fechar</button>
                 </div>
             `;
             document.body.appendChild(messageBox);
@@ -308,21 +309,31 @@
                         return;
                     }
 
-                    const userId = auth.currentUser?.uid || crypto.randomUUID();
-                    const orcamentoRef = doc(db, 'artifacts', appId, 'users', userId, 'orcamentos', orcamentoNumeroSpan.textContent);
+                    const orcamentoNumero = orcamentoNumeroSpan.textContent;
+                    const orcamentoRef = doc(db, `artifacts/${appId}/users/${auth.currentUser.uid}/orcamentos`, orcamentoNumero);
                     
                     const itens = [];
+                    let hasEmptyItem = false;
                     document.querySelectorAll('#itens-tabela tr').forEach(row => {
-                        itens.push({
-                            descricao: row.querySelector('.descricao').value,
-                            qtd: parseFloat(row.querySelector('.qtd').value) || 0,
-                            valorUnit: parseFloat(row.querySelector('.valor-unit').value) || 0,
-                            totalItem: row.querySelector('.item-total').textContent
-                        });
+                        const descricao = row.querySelector('.descricao').value.trim();
+                        const qtd = parseFloat(row.querySelector('.qtd').value) || 0;
+                        const valorUnit = parseFloat(row.querySelector('.valor-unit').value) || 0;
+                        const totalItem = row.querySelector('.item-total').textContent;
+
+                        if (!descricao) {
+                            hasEmptyItem = true;
+                        }
+
+                        itens.push({ descricao, qtd, valorUnit, totalItem });
                     });
+                    
+                    if (hasEmptyItem) {
+                         showMessage('Erro', 'Por favor, preencha a descrição de todos os itens.', 'error');
+                         return;
+                    }
 
                     const orcamentoData = {
-                        orcamentoNumero: orcamentoNumeroSpan.textContent,
+                        orcamentoNumero: orcamentoNumero,
                         data: dataAtualSpan.textContent,
                         validade: validadeInput.value,
                         condicoesPagamento: condicoesPagamentoInput.value,
@@ -351,6 +362,32 @@
             const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
             if (gerarPdfBtn) {
                 gerarPdfBtn.addEventListener('click', () => {
+                    const orcamentoNumeroSpan = document.getElementById('orcamento-numero');
+                    const orcamentoNumero = orcamentoNumeroSpan.textContent;
+                    
+                    // Basic validation before generating PDF
+                    const clienteNome = document.getElementById('cliente-nome').value;
+                    const clienteEmail = document.getElementById('cliente-email').value;
+                    const clienteTelefone = document.getElementById('cliente-telefone').value;
+
+                    const itensRows = document.querySelectorAll('#itens-tabela tr');
+                    let allItemsValid = true;
+                    if (itensRows.length === 0) {
+                        allItemsValid = false;
+                    } else {
+                        itensRows.forEach(row => {
+                            const descricao = row.querySelector('.descricao').value.trim();
+                            if (!descricao) {
+                                allItemsValid = false;
+                            }
+                        });
+                    }
+
+                    if (!clienteNome || !clienteEmail || !clienteTelefone || !allItemsValid) {
+                        showMessage('Erro', 'Por favor, preencha as informações do cliente e a descrição de todos os itens.', 'error');
+                        return;
+                    }
+
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF();
                     
@@ -414,7 +451,7 @@
                     doc.setFont(undefined, 'normal');
 
                     doc.setFontSize(12);
-                    doc.text(`Orçamento: ${orcamentoNumeroSpan.textContent}`, 20, y);
+                    doc.text(`Orçamento: ${orcamentoNumero}`, 20, y);
                     doc.text(`Data: ${dataAtualSpan.textContent}`, 105, y);
                     y += 7;
                     doc.text(`Validade: ${validadeInput.value}`, 20, y);
@@ -469,8 +506,8 @@
                     y += 5;
                     doc.text("Assinatura do Cliente", 105, y, null, null, "center");
 
-                    const orcamentoNumero = orcamentoNumeroSpan.textContent.replace(/ /g, '_').replace('#', '');
-                    doc.save(`orcamento-${orcamentoNumero}.pdf`);
+                    const orcamentoNumeroPDF = orcamentoNumero.replace(/ /g, '_').replace('#', '');
+                    doc.save(`orcamento-${orcamentoNumeroPDF}.pdf`);
                 });
             }
 
