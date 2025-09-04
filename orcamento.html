@@ -38,12 +38,12 @@
                 <p id="data-atual" class="text-gray-900"></p>
             </div>
             <div>
-                <p class="font-bold text-gray-700">Validade101:</p>
-                <input type="text" value="" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <p class="font-bold text-gray-700">Validade:</p>
+                <input id="validade-input" type="text" value="30 dias" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
             <div>
                 <p class="font-bold text-gray-700">Condições de Pagamento:</p>
-                <input type="text" value="" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input id="condicoes-pagamento-input" type="text" value="Avista" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
             </div>
         </div>
 
@@ -105,6 +105,8 @@
             const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
             const salvarBtn = document.getElementById('salvar-btn');
             const voltarBtn = document.getElementById('voltar-btn');
+            const validadeInput = document.getElementById('validade-input');
+            const condicoesPagamentoInput = document.getElementById('condicoes-pagamento-input');
             
             // Setar data e número do orçamento
             const data = new Date();
@@ -207,8 +209,8 @@
                 doc.text(`Orçamento: ${orcamentoNumeroSpan.textContent}`, 20, y);
                 doc.text(`Data: ${dataAtualSpan.textContent}`, 105, y);
                 y += 7;
-                doc.text(`Validade: ${document.querySelector('input[value="30 dias"]').value}`, 20, y);
-                doc.text(`Condições de Pagamento: ${document.querySelector('input[value="Avista"]').value}`, 105, y);
+                doc.text(`Validade: ${validadeInput.value}`, 20, y);
+                doc.text(`Condições de Pagamento: ${condicoesPagamentoInput.value}`, 105, y);
                 y += 10;
 
                 // Informações do Cliente
@@ -268,8 +270,18 @@
 
             // Botão Salvar
             salvarBtn.addEventListener('click', () => {
-                alert('Funcionalidade de salvar ainda não implementada.');
-                // Adicione a lógica para salvar os dados do orçamento aqui (ex: enviar para um servidor)
+                const messageBox = document.createElement('div');
+                messageBox.classList.add('fixed', 'inset-0', 'bg-gray-800', 'bg-opacity-50', 'flex', 'items-center', 'justify-center', 'z-50');
+                messageBox.innerHTML = `
+                    <div class="bg-white rounded-lg p-6 shadow-xl">
+                        <p class="text-lg font-semibold text-gray-800 mb-4">Funcionalidade de salvar ainda não implementada.</p>
+                        <button id="close-message" class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">Fechar</button>
+                    </div>
+                `;
+                document.body.appendChild(messageBox);
+                document.getElementById('close-message').addEventListener('click', () => {
+                    messageBox.remove();
+                });
             });
 
             // Botão Voltar
