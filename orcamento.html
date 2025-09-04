@@ -39,11 +39,23 @@
             </div>
             <div>
                 <p class="font-bold text-gray-700">Validade:</p>
-                <input id="validade-input" type="text" value="30 dias" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input id="validade-input" type="text" value="30 dias" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 hide-on-pdf">
+                <p id="validade-text" class="text-gray-900 hide-on-screen"></p>
             </div>
             <div>
                 <p class="font-bold text-gray-700">Condições de Pagamento:</p>
-                <input id="condicoes-pagamento-input" type="text" value="Avista" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input id="condicoes-pagamento-input" type="text" value="Avista" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 hide-on-pdf">
+                <p id="condicoes-pagamento-text" class="text-gray-900 hide-on-screen"></p>
+            </div>
+            <div>
+                <p class="font-bold text-gray-700">Status:</p>
+                <select id="status-select" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 hide-on-pdf">
+                    <option value="Pendente">Pendente</option>
+                    <option value="Aprovado">Aprovado</option>
+                    <option value="Rejeitado">Rejeitado</option>
+                    <option value="Cancelado">Cancelado</option>
+                </select>
+                <p id="status-text" class="text-gray-900 hide-on-screen"></p>
             </div>
         </div>
 
@@ -107,6 +119,7 @@
             const voltarBtn = document.getElementById('voltar-btn');
             const validadeInput = document.getElementById('validade-input');
             const condicoesPagamentoInput = document.getElementById('condicoes-pagamento-input');
+            const statusSelect = document.getElementById('status-select');
             
             // Setar data e número do orçamento
             const data = new Date();
@@ -194,7 +207,7 @@
                 // Título e dados da empresa em branco
                 doc.setFontSize(24);
                 doc.setTextColor(255, 255, 255);
-                doc.text("Orçamento de Serviço", 105, y, null, null, "center");
+                doc.text("Orçamento", 105, y, null, null, "center");
                 y += 10;
                 doc.setFontSize(14);
                 doc.text("AtomoTech", 105, y, null, null, "center");
@@ -204,6 +217,53 @@
                 doc.setTextColor(0, 0, 0);
                 y += 5;
 
+                // Adicionar o status com cor no canto superior direito
+                const status = statusSelect.value;
+                let statusColor = [0, 0, 0];
+                const statusX = doc.internal.pageSize.getWidth() - 50;
+                const statusY = 10;
+                const statusWidth = 40;
+                const statusHeight = 10;
+
+                doc.setFontSize(10);
+                doc.setTextColor(255, 255, 255);
+                doc.setFont(undefined, 'bold');
+                
+                switch(status) {
+                    case "Pendente":
+                        statusColor = [255, 193, 7]; // Amarelo
+                        doc.setFillColor(...statusColor);
+                        doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                        doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                        break;
+                    case "Aprovado":
+                        statusColor = [40, 167, 69]; // Verde
+                        doc.setFillColor(...statusColor);
+                        doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                        doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                        break;
+                    case "Rejeitado":
+                        statusColor = [220, 53, 69]; // Vermelho
+                        doc.setFillColor(...statusColor);
+                        doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                        doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                        break;
+                    case "Cancelado":
+                        statusColor = [220, 53, 69]; // Vermelho
+                        doc.setFillColor(...statusColor);
+                        doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                        doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                        
+                        // Faixa amarela diagonal
+                        doc.setDrawColor(255, 193, 7);
+                        doc.setLineWidth(1);
+                        doc.line(statusX, statusY + statusHeight, statusX + statusWidth, statusY);
+                        break;
+                }
+                
+                doc.setTextColor(0, 0, 0);
+                doc.setFont(undefined, 'normal');
+
                 // Dados do orçamento
                 doc.setFontSize(12);
                 doc.text(`Orçamento: ${orcamentoNumeroSpan.textContent}`, 20, y);
@@ -211,6 +271,8 @@
                 y += 7;
                 doc.text(`Validade: ${validadeInput.value}`, 20, y);
                 doc.text(`Condições de Pagamento: ${condicoesPagamentoInput.value}`, 105, y);
+                y += 7;
+                doc.text(`Status: ${statusSelect.value}`, 20, y);
                 y += 10;
 
                 // Informações do Cliente
