@@ -3,269 +3,541 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orçamento e OS</title>
+    <title>Orçamento - AtomoTech</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
+            position: relative;
+        }
+
+        /* Adiciona a imagem de fundo com opacidade */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('logo.png'); /* Caminho corrigido para o arquivo logo.png */
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: 400px;
+            opacity: 0.05;
+            z-index: -1;
+        }
+
+        /* Esconder apenas os botões de controle no PDF */
+        .hide-on-pdf {
+            display: none !important;
         }
     </style>
 </head>
-<body class="bg-gray-100 flex flex-col items-center py-10 min-h-screen relative">
+<body class="bg-gray-100 p-8">
 
-    <!-- Modal de Erro -->
-    <div id="errorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-96 text-center">
-            <h2 class="text-xl font-bold text-white bg-red-500 rounded-t-lg p-3">Erro Crítico</h2>
-            <div class="p-4">
-                <p id="errorMessage" class="text-gray-700 mb-4">Não foi possível inicializar o Firebase. A funcionalidade de salvar não estará disponível.</p>
-                <button id="closeModal" class="bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">Fechar</button>
+    <div id="orcamento-container" class="max-w-4xl mx-auto bg-white shadow-xl rounded-lg p-8">
+        <div class="relative flex justify-between items-center mb-6">
+            <span id="voltar-btn" class="absolute left-0 top-1/2 transform -translate-y-1/2 text-blue-500 hover:text-blue-700 transition-colors cursor-pointer">Voltar</span>
+            <div class="flex-grow text-center">
+                <h1 class="text-3xl font-bold text-gray-800 inline-block">Orçamento</h1>
             </div>
+            <img src="logo.png" alt="Logo da AtomoTech" class="w-28 rounded-md ml-auto" onerror="this.onerror=null;this.src='https://placehold.co/150x50/e2e8f0/334155?text=AtomoTech';">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-sm">
+            <div>
+                <p class="font-bold text-gray-700">Orçamento:</p>
+                <p id="orcamento-numero" class="text-gray-900 font-mono"></p>
+            </div>
+            <div>
+                <p class="font-bold text-gray-700">Data:</p>
+                <p id="data-atual" class="text-gray-900"></p>
+            </div>
+            <div>
+                <div>
+                <p class="font-bold text-gray-700">Validade:</p>
+                <input id="validade-input" type="text" value="30 dias" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+            </div>
+            <div>
+                <p class="font-bold text-gray-700">Condições de Pagamento:</p>
+                <input id="condicoes-pagamento-input" type="text" value="Avista" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+            <div>
+                <p class="font-bold text-gray-700">Status:</p>
+                <select id="status-select" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                    <option value="Pendente">Pendente</option>
+                    <option value="Aprovado">Aprovado</option>
+                    <option value="Rejeitado">Rejeitado</option>
+                    <option value="Cancelado">Cancelado</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-8 p-6 bg-gray-50 rounded-lg">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">Informações do Cliente</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input id="cliente-nome" type="text" placeholder="Nome" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input id="cliente-email" type="email" placeholder="Email" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                <input id="cliente-telefone" type="tel" placeholder="Telefone" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+        </div>
+
+        <div class="overflow-x-auto mb-4">
+            <table class="w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">Descrição</th>
+                        <th scope="col" class="px-6 py-3">Qtd</th>
+                        <th scope="col" class="px-6 py-3">Valor Unit.</th>
+                        <th scope="col" class="px-6 py-3">Total</th>
+                        <th scope="col" class="px-6 py-3"></th>
+                    </tr>
+                </thead>
+                <tbody id="itens-tabela">
+                    <!-- Itens serão adicionados aqui -->
+                </tbody>
+                <tfoot>
+                    <tr class="font-semibold text-gray-900">
+                        <td colspan="3" class="px-6 py-3 text-right">Total:</td>
+                        <td id="total-orcamento" class="px-6 py-3 text-right">R$ 0,00</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <button id="add-item-btn" class="mb-8 px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors">Adicionar Item</button>
+        
+        <div class="flex justify-end gap-4 mb-8">
+            <button id="salvar-btn" class="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors">Salvar</button>
+            <button id="gerar-pdf-btn" class="px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors">Gerar PDF</button>
+        </div>
+
+        <div class="border-t pt-6 text-sm text-center text-gray-600">
+            <p>Assinatura do Cliente</p>
         </div>
     </div>
 
-    <!-- Container Principal -->
-    <div class="logo-container hidden"></div>
-    <div class="w-full max-w-4xl bg-white rounded-lg shadow-xl p-8 md:p-12 z-10">
-        <div class="flex flex-col items-center mb-6">
-            <img src="https://placehold.co/100x100?text=Logo" alt="Logo" class="h-24 w-24 mb-4 rounded-full">
-            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">Orçamento / OS</h1>
-        </div>
-
-        <form id="osForm" class="space-y-6">
-            <!-- Informações do Cliente e OS -->
-            <div class="bg-gray-100 p-6 rounded-lg border border-gray-200">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Informações do Cliente e OS</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="clientName" class="block text-sm font-medium text-gray-700">Nome do Cliente:</label>
-                        <input type="text" id="clientName" name="clientName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
-                    </div>
-                    <div>
-                        <label for="clientPhone" class="block text-sm font-medium text-gray-700">Telefone:</label>
-                        <input type="tel" id="clientPhone" name="clientPhone" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
-                    </div>
-                    <div>
-                        <label for="clientEmail" class="block text-sm font-medium text-gray-700">Email:</label>
-                        <input type="email" id="clientEmail" name="clientEmail" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
-                    </div>
-                    <div>
-                        <label for="osNumber" class="block text-sm font-medium text-gray-700">Número da OS:</label>
-                        <input type="text" id="osNumber" name="osNumber" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2" readonly>
-                    </div>
-                    <div>
-                        <label for="osDate" class="block text-sm font-medium text-gray-700">Data:</label>
-                        <input type="date" id="osDate" name="osDate" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
-                    </div>
-                    <div>
-                        <label for="paymentTerms" class="block text-sm font-medium text-gray-700">Condições de Pagamento:</label>
-                        <input type="text" id="paymentTerms" name="paymentTerms" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Itens de Serviço -->
-            <div class="bg-gray-100 p-6 rounded-lg border border-gray-200">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Itens de Serviço</h2>
-                <div id="serviceItemsContainer" class="space-y-4">
-                    <!-- Item de serviço inicial, será clonado para novos itens -->
-                    <div class="service-item grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                        <div class="md:col-span-2">
-                            <label for="item-description-1" class="block text-sm font-medium text-gray-700">Descrição:</label>
-                            <input type="text" id="item-description-1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" placeholder="Ex: RJ45">
-                        </div>
-                        <div>
-                            <label for="item-qty-1" class="block text-sm font-medium text-gray-700">Qtd:</label>
-                            <input type="number" id="item-qty-1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" value="1">
-                        </div>
-                        <div>
-                            <label for="item-price-1" class="block text-sm font-medium text-gray-700">Valor Unit.:</label>
-                            <input type="number" id="item-price-1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2" step="0.01" value="0.00">
-                        </div>
-                        <div class="md:col-span-1 flex items-end">
-                            <button type="button" class="remove-item-btn bg-red-500 text-white rounded-md px-3 py-2 text-sm hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 hidden">-</button>
-                        </div>
-                    </div>
-                </div>
-                <button type="button" id="addItemBtn" class="mt-4 bg-green-500 text-white rounded-md px-4 py-2 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">Adicionar Item</button>
-            </div>
-
-            <!-- Resumo e Botões de Ação -->
-            <div class="bg-gray-100 p-6 rounded-lg border border-gray-200 flex flex-col items-end">
-                <div class="text-lg font-bold text-gray-800 mb-4">
-                    Total: <span id="totalValue">R$ 0,00</span>
-                </div>
-                <div class="flex space-x-4">
-                    <button type="button" id="saveBtn" class="bg-blue-600 text-white rounded-md px-6 py-3 font-bold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600">
-                        Salvar
-                    </button>
-                    <button type="button" id="printBtn" class="bg-gray-500 text-white rounded-md px-6 py-3 font-bold hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500">
-                        Imprimir
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-
+    <!-- Script para gerar PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.14/jspdf.plugin.autotable.min.js"></script>
+    <!-- Firebase SDKs -->
     <script type="module">
-        // Global variables for Firebase
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, where, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase variables
-        let app = null;
-        let auth = null;
-        let db = null;
-        let userId = null;
+        // Variáveis de configuração do Firebase inseridas diretamente no código
+        const firebaseConfig = {
+            apiKey: "AIzaSyBD5NJXU1YBb1tbWAtaO8tyx21x5UwDs58",
+            authDomain: "atomotech-gestao.firebaseapp.com",
+            projectId: "atomotech-gestao",
+            storageBucket: "atomotech-gestao.firebasestorage.app",
+            messagingSenderId: "307660458127",
+            appId: "1:307660458127:web:853844133b6cf7c7e788fa",
+            measurementId: "G-WB5BZPR532"
+        };
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const appId = firebaseConfig.appId;
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            const osForm = document.getElementById('osForm');
-            const addItemBtn = document.getElementById('addItemBtn');
-            const serviceItemsContainer = document.getElementById('serviceItemsContainer');
-            const totalValueSpan = document.getElementById('totalValue');
-            const saveBtn = document.getElementById('saveBtn');
-            const printBtn = document.getElementById('printBtn');
-            const osNumberInput = document.getElementById('osNumber');
-            const osDateInput = document.getElementById('osDate');
-            const errorModal = document.getElementById('errorModal');
-            const errorMessage = document.getElementById('errorMessage');
-            const closeModalBtn = document.getElementById('closeModal');
-            const firebaseAuthStatus = document.getElementById('firebaseAuthStatus');
+        console.log("Variável de configuração do Firebase:", firebaseConfig);
 
-            closeModalBtn.addEventListener('click', () => {
-                errorModal.classList.add('hidden');
+        let db, auth;
+        let isFirebaseInitialized = false;
+
+        // Function to show a custom message box
+        const showMessage = (title, message, type = 'success') => {
+            const messageBox = document.createElement('div');
+            messageBox.classList.add('fixed', 'inset-0', 'bg-gray-800', 'bg-opacity-50', 'flex', 'items-center', 'justify-center', 'z-50');
+            const boxColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const closeBtnColor = type === 'success' ? 'bg-green-600' : 'bg-red-600';
+            messageBox.innerHTML = `
+                <div class="bg-white rounded-lg p-6 shadow-xl w-80 text-center">
+                    <div class="p-4 ${boxColor} text-white rounded-t-md mb-4">
+                        <p class="text-xl font-bold">${title}</p>
+                    </div>
+                    <p class="text-lg font-semibold text-gray-800 mb-4">${message}</p>
+                    <button id="close-message" class="w-full px-4 py-2 ${closeBtnColor} text-white rounded-md hover:bg-opacity-80 transition-colors">Fechar</button>
+                </div>
+            `;
+            document.body.appendChild(messageBox);
+            document.getElementById('close-message').addEventListener('click', () => {
+                messageBox.remove();
+            });
+        };
+
+        // Function to clear the form
+        const clearForm = () => {
+            document.getElementById('orcamento-numero').textContent = '';
+            document.getElementById('data-atual').textContent = '';
+            document.getElementById('validade-input').value = '30 dias';
+            document.getElementById('condicoes-pagamento-input').value = 'Avista';
+            document.getElementById('status-select').value = 'Pendente';
+            document.getElementById('cliente-nome').value = '';
+            document.getElementById('cliente-email').value = '';
+            document.getElementById('cliente-telefone').value = '';
+            
+            const itensTabela = document.getElementById('itens-tabela');
+            itensTabela.innerHTML = '';
+            document.getElementById('total-orcamento').textContent = 'R$ 0,00';
+            
+            // Re-generate budget number and date for a new one
+            const data = new Date();
+            const dia = String(data.getDate()).padStart(2, '0');
+            const mes = String(data.getMonth() + 1).padStart(2, '0');
+            const ano = data.getFullYear().toString().substring(2);
+            document.getElementById('data-atual').textContent = `${dia}/${mes}/${data.getFullYear()}`;
+            const numeroAleatorio = Math.floor(100 + Math.random() * 900);
+            document.getElementById('orcamento-numero').textContent = `${dia}${mes}${ano}-${numeroAleatorio}`;
+            
+            // Add a single item row to start
+            addItem();
+        };
+
+        // Function to add a new item row
+        const addItem = (descricao = '', qtd = '', valorUnit = '') => {
+            const newRow = document.createElement('tr');
+            newRow.classList.add('bg-white', 'border-b', 'hover:bg-gray-50');
+            newRow.innerHTML = `
+                <td class="px-6 py-4"><input type="text" value="${descricao}" class="descricao w-full px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-green-500"></td>
+                <td class="px-6 py-4"><input type="number" value="${qtd}" class="qtd w-20 px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 text-right"></td>
+                <td class="px-6 py-4"><input type="number" value="${valorUnit}" step="0.01" class="valor-unit w-24 px-2 py-1 border rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 text-right"></td>
+                <td class="px-6 py-4 text-right item-total">R$ 0,00</td>
+                <td class="px-6 py-4 text-right">
+                    <button class="remover-item-btn text-red-600 hover:text-red-800 transition-colors">Remover</button>
+                </td>
+            `;
+            const itensTabela = document.getElementById('itens-tabela');
+            if (itensTabela) {
+                itensTabela.appendChild(newRow);
+
+                const qtdInput = newRow.querySelector('.qtd');
+                const valorUnitInput = newRow.querySelector('.valor-unit');
+                const removerBtn = newRow.querySelector('.remover-item-btn');
+
+                const updateRowTotal = () => {
+                    updateSubtotal(newRow);
+                    updateTotal();
+                };
+
+                qtdInput.addEventListener('input', updateRowTotal);
+                valorUnitInput.addEventListener('input', updateRowTotal);
+                
+                removerBtn.addEventListener('click', () => {
+                    newRow.remove();
+                    updateTotal();
+                });
+
+                updateSubtotal(newRow);
+                updateTotal();
+            } else {
+                console.error("Element with ID 'itens-tabela' not found.");
+            }
+        };
+
+        const updateSubtotal = (row) => {
+            const qtdInput = row.querySelector('.qtd');
+            const valorUnitInput = row.querySelector('.valor-unit');
+            const totalSpan = row.querySelector('.item-total');
+
+            const qtd = parseFloat(qtdInput.value) || 0;
+            const valorUnit = parseFloat(valorUnitInput.value) || 0;
+            const subtotal = qtd * valorUnit;
+
+            if (totalSpan) {
+                totalSpan.textContent = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            }
+            return subtotal;
+        };
+
+        const updateTotal = () => {
+            let total = 0;
+            document.querySelectorAll('#itens-tabela tr').forEach(row => {
+                const subtotalText = row.querySelector('.item-total').textContent.replace('R$', '').replace('.', '').replace(',', '.').trim();
+                total += parseFloat(subtotalText);
+            });
+            const totalOrcamentoSpan = document.getElementById('total-orcamento');
+            if (totalOrcamentoSpan) {
+                totalOrcamentoSpan.textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            }
+        };
+
+        const generatePDF = () => {
+            const orcamentoNumeroSpan = document.getElementById('orcamento-numero');
+            const dataAtualSpan = document.getElementById('data-atual');
+            const validadeInput = document.getElementById('validade-input');
+            const condicoesPagamentoInput = document.getElementById('condicoes-pagamento-input');
+            const statusSelect = document.getElementById('status-select');
+            
+            const clienteNome = document.getElementById('cliente-nome').value;
+            const clienteEmail = document.getElementById('cliente-email').value;
+            const clienteTelefone = document.getElementById('cliente-telefone').value;
+
+            const itensRows = document.querySelectorAll('#itens-tabela tr');
+            let allItemsValid = true;
+            itensRows.forEach(row => {
+                const descricao = row.querySelector('.descricao').value.trim();
+                if (!descricao) {
+                    allItemsValid = false;
+                }
             });
 
-            function showModal(message) {
-                errorMessage.textContent = message;
-                errorModal.classList.remove('hidden');
-            }
-
-            try {
-                if (firebaseConfig) {
-                    app = initializeApp(firebaseConfig);
-                    auth = getAuth(app);
-                    db = getFirestore(app);
-
-                    // Sign in with custom token if provided, otherwise sign in anonymously
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-
-                    onAuthStateChanged(auth, (user) => {
-                        if (user) {
-                            userId = user.uid;
-                            console.log('Usuário autenticado. UID:', userId);
-                        } else {
-                            userId = null;
-                            console.log('Nenhum usuário autenticado.');
-                        }
-                    });
-                } else {
-                    showModal("Firebase não configurado. Por favor, forneça as configurações do Firebase.");
-                }
-            } catch (error) {
-                console.error("Erro ao inicializar Firebase:", error);
-                showModal(`Não foi possível inicializar o Firebase. A funcionalidade de salvar não estará disponível. Detalhes: ${error.message}`);
+            if (!clienteNome || !clienteEmail || !clienteTelefone || !allItemsValid) {
+                showMessage('Erro', 'Por favor, preencha as informações do cliente e a descrição de todos os itens.', 'error');
                 return;
             }
 
-            // Generate OS number and set current date on load
-            osNumberInput.value = generateOsNumber();
-            osDateInput.valueAsDate = new Date();
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            let y = 20;
+            const blueColor = [59, 130, 246];
+            doc.setFillColor(...blueColor);
+            doc.rect(0, 0, doc.internal.pageSize.getWidth(), 30, 'F');
+            doc.setFontSize(24);
+            doc.setTextColor(255, 255, 255);
+            doc.text("Orçamento", 105, y, null, null, "center");
+            y += 10;
+            doc.setFontSize(14);
+            doc.text("AtomoTech", 105, y, null, null, "center");
+            y += 10;
+            doc.setTextColor(0, 0, 0);
+            y += 5;
 
-            function generateOsNumber() {
-                const date = new Date();
-                const day = String(date.getDate()).padStart(2, '0');
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const year = String(date.getFullYear()).slice(-2);
-                const random = Math.floor(Math.random() * 10000);
-                return `${day}${month}${year}-${random}`;
+            const status = statusSelect.value;
+            let statusColor = [0, 0, 0];
+            const statusX = doc.internal.pageSize.getWidth() - 50;
+            const statusY = 10;
+            const statusWidth = 40;
+            const statusHeight = 10;
+
+            doc.setFontSize(10);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont(undefined, 'bold');
+            
+            switch(status) {
+                case "Pendente":
+                    statusColor = [255, 193, 7];
+                    doc.setFillColor(...statusColor);
+                    doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                    doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                    break;
+                case "Aprovado":
+                    statusColor = [40, 167, 69];
+                    doc.setFillColor(...statusColor);
+                    doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                    doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                    break;
+                case "Rejeitado":
+                    statusColor = [220, 53, 69];
+                    doc.setFillColor(...statusColor);
+                    doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                    doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                    break;
+                case "Cancelado":
+                    statusColor = [220, 53, 69];
+                    doc.setFillColor(...statusColor);
+                    doc.roundedRect(statusX, statusY, statusWidth, statusHeight, 2, 2, 'F');
+                    doc.text(status.toUpperCase(), statusX + statusWidth / 2, statusY + statusHeight / 2 + 1, { align: 'center' });
+                    
+                    doc.setDrawColor(255, 193, 7);
+                    doc.setLineWidth(1);
+                    doc.line(statusX, statusY + statusHeight, statusX + statusWidth, statusY);
+                    break;
             }
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFont(undefined, 'normal');
 
-            // Function to add new service item row
-            addItemBtn.addEventListener('click', () => {
-                const itemDiv = document.querySelector('.service-item').cloneNode(true);
-                const inputs = itemDiv.querySelectorAll('input');
-                inputs.forEach(input => input.value = '');
-                itemDiv.querySelector('.remove-item-btn').classList.remove('hidden');
-                serviceItemsContainer.appendChild(itemDiv);
-            });
+            doc.setFontSize(12);
+            doc.text(`Orçamento: ${orcamentoNumeroSpan.textContent}`, 20, y);
+            doc.text(`Data: ${dataAtualSpan.textContent}`, 105, y);
+            y += 7;
+            doc.text(`Validade: ${validadeInput.value}`, 20, y);
+            doc.text(`Condições de Pagamento: ${condicoesPagamentoInput.value}`, 105, y);
+            y += 7;
+            doc.text(`Status: ${statusSelect.value}`, 20, y);
+            y += 10;
 
-            // Event listener for removing service item
-            serviceItemsContainer.addEventListener('click', (e) => {
-                if (e.target.classList.contains('remove-item-btn')) {
-                    e.target.closest('.service-item').remove();
-                }
-            });
-
-            // Function to calculate and update total
-            osForm.addEventListener('input', () => {
-                let total = 0;
-                const items = document.querySelectorAll('.service-item');
-                items.forEach(item => {
-                    const qty = parseFloat(item.querySelector('input[type="number"]:nth-of-type(1)').value) || 0;
-                    const price = parseFloat(item.querySelector('input[type="number"]:nth-of-type(2)').value) || 0;
-                    total += qty * price;
-                });
-                totalValueSpan.textContent = `R$ ${total.toFixed(2)}`;
+            const headers = ["Descrição", "Qtd", "Valor Unit.", "Total"];
+            const dataRows = [];
+            document.querySelectorAll('#itens-tabela tr').forEach(row => {
+                const rowData = [
+                    row.querySelector('.descricao').value,
+                    row.querySelector('.qtd').value,
+                    row.querySelector('.valor-unit').value,
+                    row.querySelector('.item-total').textContent
+                ];
+                dataRows.push(rowData);
             });
             
-            // Function to save data to Firestore
-            saveBtn.addEventListener('click', async () => {
-                if (!db || !userId) {
-                    showModal('Firebase não inicializado ou usuário não autenticado. A funcionalidade de salvar não está disponível.');
-                    return;
+            doc.autoTable({
+                head: [headers],
+                body: dataRows,
+                startY: y,
+                theme: 'grid',
+                styles: { cellPadding: 2, fontSize: 10 },
+                headStyles: { fillColor: blueColor, textColor: 255 },
+                columnStyles: {
+                    0: { cellWidth: 'auto' },
+                    1: { cellWidth: 20 },
+                    2: { cellWidth: 30 },
+                    3: { cellWidth: 30 }
                 }
+            });
 
-                try {
-                    const osData = {
-                        osNumber: osNumberInput.value,
-                        osDate: osDateInput.value,
-                        clientName: document.getElementById('clientName').value,
-                        clientEmail: document.getElementById('clientEmail').value,
-                        clientPhone: document.getElementById('clientPhone').value,
-                        paymentTerms: document.getElementById('paymentTerms').value,
-                        items: [],
-                        total: parseFloat(totalValueSpan.textContent.replace('R$ ', '').replace(',', '.'))
+            y = doc.autoTable.previous.finalY + 5;
+            doc.setFontSize(12);
+            doc.text(`Total: ${document.getElementById('total-orcamento').textContent}`, 180, y, null, null, "right");
+            y += 20;
+
+            doc.line(60, y, 150, y);
+            y += 5;
+            doc.text("Assinatura do Cliente", 105, y, null, null, "center");
+
+            const orcamentoNumeroPDF = orcamentoNumeroSpan.textContent.replace(/ /g, '_').replace('#', '');
+            doc.save(`orcamento-${orcamentoNumeroPDF}.pdf`);
+        };
+
+
+        // Main logic to be executed once the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log("DOM content loaded. Initializing app.");
+            
+            // Initialize Firebase only if the API key is valid
+            try {
+                if (!firebaseConfig || !firebaseConfig.apiKey) {
+                    throw new Error("API Key do Firebase não fornecida. A funcionalidade de salvar não estará disponível.");
+                }
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Use signInWithCustomToken se estiver definido, caso contrário, use signInAnonymously
+                if (initialAuthToken) {
+                  await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                  await signInAnonymously(auth);
+                }
+                
+                isFirebaseInitialized = true;
+                console.log("Firebase initialized and user signed in.");
+            } catch (error) {
+                console.error("Erro ao inicializar Firebase:", error);
+                showMessage('Erro Crítico', `Não foi possível inicializar o Firebase. A funcionalidade de salvar não estará disponível. Detalhes: ${error.message}`, 'error');
+            }
+
+            const orcamentoNumeroSpan = document.getElementById('orcamento-numero');
+            const dataAtualSpan = document.getElementById('data-atual');
+            const validadeInput = document.getElementById('validade-input');
+            const condicoesPagamentoInput = document.getElementById('condicoes-pagamento-input');
+            const statusSelect = document.getElementById('status-select');
+            
+            const clienteNomeInput = document.getElementById('cliente-nome');
+            const clienteEmailInput = document.getElementById('cliente-email');
+            const clienteTelefoneInput = document.getElementById('cliente-telefone');
+
+            // Setar data e número do orçamento
+            const data = new Date();
+            const dia = String(data.getDate()).padStart(2, '0');
+            const mes = String(data.getMonth() + 1).padStart(2, '0');
+            const ano = data.getFullYear().toString().substring(2);
+            dataAtualSpan.textContent = `${dia}/${mes}/${data.getFullYear()}`;
+            
+            const numeroAleatorio = Math.floor(100 + Math.random() * 900);
+            orcamentoNumeroSpan.textContent = `${dia}${mes}${ano}-${numeroAleatorio}`;
+            
+            // Add initial item row
+            addItem();
+            
+            // Adicionar funcionalidade de preenchimento automático
+            clienteNomeInput.addEventListener('input', () => {
+                const nome = clienteNomeInput.value.trim();
+                if (nome.length > 2) {
+                    clienteEmailInput.value = `${nome.toLowerCase().replace(/ /g, '')}@exemplo.com`;
+                    clienteTelefoneInput.value = `(99) 99999-9999`;
+                }
+            });
+
+            // Add all event listeners
+            const addItemBtn = document.getElementById('add-item-btn');
+            if (addItemBtn) {
+                addItemBtn.addEventListener('click', () => addItem());
+            }
+
+            const salvarBtn = document.getElementById('salvar-btn');
+            if (salvarBtn) {
+                salvarBtn.addEventListener('click', async () => {
+                    if (!isFirebaseInitialized) {
+                        showMessage('Aviso', 'A funcionalidade de salvar não está disponível. Não foi possível conectar ao Firebase.', 'error');
+                        return;
+                    }
+
+                    const orcamentoNumero = orcamentoNumeroSpan.textContent;
+                    // Alterado o path da coleção para usar o appId e o userId
+                    const orcamentoRef = doc(db, `artifacts/${appId}/users/${auth.currentUser.uid}/orcamentos`, orcamentoNumero);
+                    
+                    const itens = [];
+                    let hasEmptyItem = false;
+                    document.querySelectorAll('#itens-tabela tr').forEach(row => {
+                        const descricao = row.querySelector('.descricao').value.trim();
+                        const qtd = parseFloat(row.querySelector('.qtd').value) || 0;
+                        const valorUnit = parseFloat(row.querySelector('.valor-unit').value) || 0;
+                        const totalItem = row.querySelector('.item-total').textContent;
+
+                        if (!descricao) {
+                            hasEmptyItem = true;
+                        }
+
+                        itens.push({ descricao, qtd, valorUnit, totalItem });
+                    });
+                    
+                    if (hasEmptyItem) {
+                         showMessage('Erro', 'Por favor, preencha a descrição de todos os itens.', 'error');
+                         return;
+                    }
+
+                    const orcamentoData = {
+                        orcamentoNumero: orcamentoNumero,
+                        data: dataAtualSpan.textContent,
+                        validade: validadeInput.value,
+                        condicoesPagamento: condicoesPagamentoInput.value,
+                        status: statusSelect.value,
+                        cliente: {
+                            nome: document.getElementById('cliente-nome').value,
+                            email: document.getElementById('cliente-email').value,
+                            telefone: document.getElementById('cliente-telefone').value
+                        },
+                        itens: itens,
+                        total: document.getElementById('total-orcamento').textContent,
+                        createdAt: new Date()
                     };
 
-                    const items = document.querySelectorAll('.service-item');
-                    items.forEach(item => {
-                        osData.items.push({
-                            description: item.querySelector('input[placeholder="Ex: RJ45"]').value,
-                            quantity: parseFloat(item.querySelector('input[type="number"]:nth-of-type(1)').value),
-                            unitPrice: parseFloat(item.querySelector('input[type="number"]:nth-of-type(2)').value),
-                        });
-                    });
+                    try {
+                        await setDoc(orcamentoRef, orcamentoData);
+                        showMessage('Sucesso', 'Orçamento salvo com sucesso!');
+                        clearForm();
+                    } catch (error) {
+                        console.error("Erro ao salvar o documento:", error);
+                        showMessage('Erro', `Não foi possível salvar o orçamento. Detalhes: ${error.message}`, 'error');
+                    }
+                });
+            }
 
-                    // Firestore path for user-specific data
-                    const osCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/orcamentos`);
-                    await addDoc(osCollectionRef, osData);
-                    
-                    console.log("Documento salvo com sucesso!");
-                    alert("Documento salvo com sucesso!");
-                    
-                } catch (error) {
-                    console.error("Erro ao salvar documento:", error);
-                    showModal(`Erro ao salvar documento: ${error.message}`);
-                }
-            });
+            const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
+            if (gerarPdfBtn) {
+                gerarPdfBtn.addEventListener('click', generatePDF);
+            }
 
-            // Print functionality
-            printBtn.addEventListener('click', () => {
-                window.print();
-            });
-
+            const voltarBtn = document.getElementById('voltar-btn');
+            if (voltarBtn) {
+                voltarBtn.addEventListener('click', () => {
+                    window.history.back();
+                });
+            }
         });
     </script>
 </body>
