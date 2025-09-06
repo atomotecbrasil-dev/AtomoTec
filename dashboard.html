@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Documentos - AtomoTech</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -44,15 +41,12 @@
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
-    <!-- Header -->
     <header class="header text-white p-4 shadow-lg fixed top-0 left-0 right-0 z-50">
         <div class="container mx-auto flex items-center justify-between">
-            <!-- Botão de Voltar -->
             <button onclick="window.history.back();" class="text-white hover:text-gray-200 transition-colors mr-4">
                 <i class="fas fa-arrow-left text-xl"></i>
             </button>
             
-            <!-- Logo e Nome da Empresa -->
             <div class="flex items-center">
                 <img src="logo.png" alt="AtomoTech Logo" class="h-8 mr-2">
                 <h1 class="text-3xl font-bold">AtomoTech19</h1>
@@ -64,18 +58,15 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-1 mt-20 p-4 sm:p-6 lg:p-8">
         <div class="container mx-auto">
             <h2 class="text-2xl font-semibold mb-6 text-gray-800">Gerenciar Documentos</h2>
             
-            <!-- Interface de Abas -->
             <div class="flex mb-4 border-b border-gray-200">
                 <button id="orcamento-tab" class="tab-button active px-4 py-2 font-medium text-gray-600 hover:text-blue-500 transition-colors">Orçamentos</button>
                 <button id="os-tab" class="tab-button px-4 py-2 font-medium text-gray-600 hover:text-blue-500 transition-colors">Ordens de Serviço</button>
             </div>
             
-            <!-- Painel de Filtros e Busca -->
             <div class="bg-white p-6 rounded-lg shadow-md mb-6">
                 <h3 class="text-lg font-semibold mb-4">Filtros</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -109,7 +100,6 @@
                 </div>
             </div>
             
-            <!-- Conteúdo das Abas (Tabela) -->
             <div id="orcamento-content" class="tab-content bg-white p-6 rounded-lg shadow-md">
                 <div id="loading-spinner" class="flex items-center justify-center p-4 hidden">
                     <div class="loader"></div>
@@ -151,7 +141,6 @@
                     </table>
                 </div>
             </div>
-            <!-- Div para a Saída de Depuração (agora visível por padrão) -->
             <div id="debug-output" class="mt-6 p-4 bg-gray-800 text-gray-100 rounded-lg shadow-inner font-mono">
                 <h3 class="font-bold mb-2">Saída de Depuração</h3>
                 <pre id="debug-pre"></pre>
@@ -160,7 +149,6 @@
         </div>
     </main>
 
-    <!-- Modal de Edição -->
     <div id="edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-lg p-6 max-w-2xl w-full shadow-lg overflow-y-auto max-h-[90vh]">
             <h3 class="text-xl font-bold mb-4" id="edit-modal-title">Editar Documento</h3>
@@ -206,7 +194,6 @@
                     </div>
                 </div>
 
-                <!-- Itens -->
                 <div class="mt-6">
                     <h4 class="text-lg font-semibold mb-2">Itens</h4>
                     <div id="itens-container"></div>
@@ -221,7 +208,6 @@
         </div>
     </div>
     
-    <!-- Modal para Mensagens -->
     <div id="message-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">
             <h3 id="message-title" class="text-lg font-bold mb-2"></h3>
@@ -545,10 +531,9 @@
             }
 
             showLoading();
-          //  const docsPath = `artifacts/${appId}/users/${userId}/${collectionName}`;
-             // Substitua a linha acima por esta
-const docsPath = `public/data/${collectionName}`;
-		const docsRef = collection(db, docsPath);
+            // CORRIGIDO: Alterado o caminho para corresponder à estrutura do seu banco de dados.
+            const docsPath = `public/data/${collectionName}`;
+            const docsRef = collection(db, docsPath);
             
             console.log(`Buscando documentos na coleção: ${docsPath}`);
 
