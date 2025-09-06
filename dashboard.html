@@ -12,14 +12,27 @@
             background-color: #f3f4f6;
         }
         .tab-button.active {
-            border-bottom: 2px solid #3b82f6;
-            color: #3b82f6;
+            border-bottom: 2px solid white;
+            color: white;
         }
     </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e3a8a',
+                        secondary: '#3b82f6',
+                        accent: '#d1d5db'
+                    }
+                }
+            }
+        }
+    </script>
 </head>
-<body class="bg-gray-100 flex flex-col items-center py-10 min-h-screen">
+<body class="bg-gray-100 flex flex-col min-h-screen">
     <!-- Modal de Erro -->
-    <div id="errorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden">
+    <div id="errorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
         <div class="bg-white rounded-lg shadow-xl p-6 w-96 text-center">
             <h2 class="text-xl font-bold text-white bg-red-500 rounded-t-lg p-3">Erro Crítico</h2>
             <div class="p-4">
@@ -29,10 +42,28 @@
         </div>
     </div>
     
-    <div class="w-full max-w-6xl bg-white rounded-lg shadow-xl p-8 md:p-12 z-10">
-        <div class="flex flex-col items-center mb-6">
-            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">Gerenciar Documentos000</h1>
-            <p id="authStatus" class="text-sm text-gray-600">Autenticando...</p>
+    <!-- Cabeçalho Principal -->
+    <header class="w-full bg-primary text-white shadow-lg p-4 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            <div class="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                </svg>
+                <span class="text-xl font-bold">AtomoTech19</span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 text-sm">
+            <span>Conectado como:</span>
+            <span id="authStatus" class="font-bold">Carregando...</span>
+        </div>
+    </header>
+
+    <main class="w-full max-w-6xl mx-auto p-8 md:p-12 z-10">
+        <div class="flex flex-col mb-6">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2">Gerenciar Documentos</h1>
         </div>
 
         <!-- Abas de Navegação -->
@@ -43,11 +74,37 @@
         
         <!-- Formulário de Filtro -->
         <div class="bg-gray-100 p-6 rounded-lg border border-gray-200 mb-6">
-            <div class="flex items-center space-x-4">
-                <input type="text" id="filterInput" placeholder="Filtrar por nome do cliente ou número..." class="flex-grow rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
-                <button id="applyFilterBtn" class="bg-blue-600 text-white rounded-md px-6 py-2 font-bold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    Aplicar Filtro
-                </button>
+            <div class="flex flex-col md:flex-row items-start md:items-end justify-between space-y-4 md:space-y-0 md:space-x-4">
+                <div class="flex-grow grid grid-cols-1 md:grid-cols-4 gap-4 w-full">
+                    <div class="flex flex-col">
+                        <label for="statusFilter" class="text-sm font-medium text-gray-700">Status</label>
+                        <select id="statusFilter" class="rounded-md border-gray-300 shadow-sm focus:border-secondary focus:ring-secondary mt-1 p-2">
+                            <option value="Todos">Todos</option>
+                            <option value="Aberto">Aberto</option>
+                            <option value="Fechado">Fechado</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col md:col-span-1">
+                        <label for="clientFilter" class="text-sm font-medium text-gray-700">Cliente</label>
+                        <input type="text" id="clientFilter" placeholder="Nome do Cliente" class="rounded-md border-gray-300 shadow-sm focus:border-secondary focus:ring-secondary mt-1 p-2">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="startDateFilter" class="text-sm font-medium text-gray-700">Data Inicial</label>
+                        <input type="date" id="startDateFilter" class="rounded-md border-gray-300 shadow-sm focus:border-secondary focus:ring-secondary mt-1 p-2">
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="endDateFilter" class="text-sm font-medium text-gray-700">Data Final</label>
+                        <input type="date" id="endDateFilter" class="rounded-md border-gray-300 shadow-sm focus:border-secondary focus:ring-secondary mt-1 p-2">
+                    </div>
+                </div>
+                <div class="flex-shrink-0 flex space-x-2">
+                    <button id="applyFilterBtn" class="bg-blue-600 text-white rounded-md px-6 py-2 font-bold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600">
+                        Aplicar Filtros
+                    </button>
+                    <button id="clearFilterBtn" class="bg-gray-300 text-gray-800 rounded-md px-6 py-2 font-bold hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                        Limpar Filtros
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -56,15 +113,16 @@
             <table class="min-w-full bg-white">
                 <thead class="bg-gray-200">
                     <tr>
-                        <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Número do Orçamento</th>
+                        <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Documento</th>
                         <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cliente</th>
                         <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Data</th>
-                        <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
+                        <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="tableBodyOrcamentos" class="bg-white divide-y divide-gray-200">
                     <tr>
-                        <td colspan="4" class="text-center py-4 text-gray-500">Nenhum orçamento encontrado.</td>
+                        <td colspan="5" class="text-center py-4 text-gray-500">Carregando orçamentos...</td>
                     </tr>
                 </tbody>
             </table>
@@ -75,30 +133,31 @@
             <table class="min-w-full bg-white">
                 <thead class="bg-gray-200">
                     <tr>
-                        <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Número da OS</th>
+                        <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Documento</th>
                         <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Cliente</th>
                         <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Data</th>
                         <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="tableBodyOrdensDeServico" class="bg-white divide-y divide-gray-200">
                     <tr>
-                        <td colspan="4" class="text-center py-4 text-gray-500">Nenhuma ordem de serviço encontrada.</td>
+                        <td colspan="5" class="text-center py-4 text-gray-500">Carregando ordens de serviço...</td>
                     </tr>
                 </tbody>
             </table>
         </div>
-    </div>
+    </main>
 
     <script type="module">
-        // Global variables for Firebase
+        // Global variables provided by the Canvas environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         import { initializeApp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         let app = null;
         let auth = null;
@@ -114,14 +173,15 @@
         const contentOrdensDeServico = document.getElementById('contentOrdensDeServico');
         const tableBodyOrcamentos = document.getElementById('tableBodyOrcamentos');
         const tableBodyOrdensDeServico = document.getElementById('tableBodyOrdensDeServico');
-        const filterInput = document.getElementById('filterInput');
-        const applyFilterBtn = document.getElementById('applyFilterBtn');
         const authStatus = document.getElementById('authStatus');
         const errorModal = document.getElementById('errorModal');
         const errorMessage = document.getElementById('errorMessage');
         const closeModalBtn = document.getElementById('closeModal');
-        
-        // Define o nível de log para debug
+        const clientFilterInput = document.getElementById('clientFilter');
+        const applyFilterBtn = document.getElementById('applyFilterBtn');
+        const clearFilterBtn = document.getElementById('clearFilterBtn');
+
+        // Set Firebase log level for debugging
         setLogLevel('debug');
         
         closeModalBtn.addEventListener('click', () => {
@@ -134,69 +194,75 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log("DOM totalmente carregado. Iniciando a aplicação.");
+            console.log("DOM is fully loaded. Starting application.");
             if (!firebaseConfig) {
-                showModal("Firebase não configurado. Por favor, forneça as configurações do Firebase.");
+                showModal("Firebase configuration not found. Please provide Firebase configurations.");
                 return;
             }
 
             try {
-                console.log("Inicializando o Firebase...");
+                console.log("Initializing Firebase...");
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
 
                 if (initialAuthToken) {
-                    console.log("Token de autenticação inicial disponível. Entrando com token personalizado...");
+                    console.log("Initial auth token is available. Signing in with custom token...");
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
-                    console.log("Token não disponível. Entrando anonimamente...");
+                    console.log("No initial auth token. Signing in anonymously...");
                     await signInAnonymously(auth);
                 }
 
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         userId = user.uid;
-                        authStatus.textContent = `Usuário autenticado. UID: ${userId}`;
-                        console.log(`Usuário autenticado. UID: ${userId}`);
+                        authStatus.textContent = userId;
+                        console.log(`User authenticated. UID: ${userId}`);
                         setupRealtimeListeners(userId);
                     } else {
                         userId = null;
-                        authStatus.textContent = 'Nenhum usuário autenticado.';
-                        console.log("Nenhum usuário autenticado.");
+                        authStatus.textContent = 'Desconectado';
+                        console.log("No user authenticated.");
                         clearTables();
                     }
                 });
             } catch (error) {
-                console.error("Erro ao inicializar Firebase:", error);
-                showModal(`Não foi possível inicializar o Firebase. Detalhes: ${error.message}`);
+                console.error("Error initializing Firebase:", error);
+                showModal(`Failed to initialize Firebase. Details: ${error.message}`);
             }
 
-            // Event listeners para as abas
+            // Event listeners for tabs
             tabOrcamentos.addEventListener('click', () => switchTab('orcamentos'));
             tabOrdensDeServico.addEventListener('click', () => switchTab('ordensDeServico'));
             
-            // Event listener para o botão de filtro
+            // Event listener for the filter buttons
             applyFilterBtn.addEventListener('click', () => {
-                const searchTerm = filterInput.value.toLowerCase();
+                const searchTerm = clientFilterInput.value.toLowerCase();
                 if (activeTab === 'orcamentos') {
                     const filteredData = allOrcamentos.filter(doc => 
-                        (doc.clientName && doc.clientName.toLowerCase().includes(searchTerm)) ||
-                        (doc.osNumber && doc.osNumber.toLowerCase().includes(searchTerm))
+                        (doc.clientName && doc.clientName.toLowerCase().includes(searchTerm))
                     );
                     renderTable(filteredData, 'orcamentos');
                 } else {
                     const filteredData = allOrdensDeServico.filter(doc => 
-                        (doc.clientName && doc.clientName.toLowerCase().includes(searchTerm)) ||
-                        (doc.osNumber && doc.osNumber.toLowerCase().includes(searchTerm))
+                        (doc.clientName && doc.clientName.toLowerCase().includes(searchTerm))
                     );
                     renderTable(filteredData, 'ordensDeServico');
                 }
             });
             
-            // Event listener para o input de filtro
-            filterInput.addEventListener('input', () => {
-                if (filterInput.value === '') {
+            clearFilterBtn.addEventListener('click', () => {
+                clientFilterInput.value = '';
+                if (activeTab === 'orcamentos') {
+                    renderTable(allOrcamentos, 'orcamentos');
+                } else {
+                    renderTable(allOrdensDeServico, 'ordensDeServico');
+                }
+            });
+
+            clientFilterInput.addEventListener('input', () => {
+                if (clientFilterInput.value === '') {
                     if (activeTab === 'orcamentos') {
                         renderTable(allOrcamentos, 'orcamentos');
                     } else {
@@ -225,19 +291,18 @@
         }
 
         function clearTables() {
-            tableBodyOrcamentos.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Nenhum orçamento encontrado.</td></tr>';
-            tableBodyOrdensDeServico.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-500">Nenhuma ordem de serviço encontrada.</td></tr>';
+            tableBodyOrcamentos.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Nenhum documento encontrado.</td></tr>';
+            tableBodyOrdensDeServico.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-gray-500">Nenhum documento encontrado.</td></tr>';
         }
 
         function setupRealtimeListeners(currentUserId) {
-            // Verifique se o userId é válido antes de tentar se conectar ao Firestore.
             if (!currentUserId) {
-                console.error("userId não encontrado. Não é possível se conectar ao Firestore.");
-                showModal("Erro de autenticação: ID de usuário não encontrado.");
+                console.error("userId not found. Cannot connect to Firestore.");
+                showModal("Authentication error: User ID not found.");
                 return;
             }
-
-            console.log("Configurando listeners em tempo real para orçamentos e ordens de serviço...");
+            
+            console.log("Setting up real-time listeners for orcamentos and ordensDeServico...");
             
             const orcamentosCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/orcamentos`);
             onSnapshot(orcamentosCollectionRef, (querySnapshot) => {
@@ -246,20 +311,20 @@
                     const data = doc.data();
                     orcamentos.push({
                         id: doc.id,
-                        osNumber: data.osNumber,
+                        docNumber: data.osNumber,
                         clientName: data.clientName,
-                        osDate: data.osDate,
-                        total: data.total || 0,
+                        docDate: data.osDate,
+                        status: 'N/A'
                     });
                 });
                 allOrcamentos = orcamentos;
                 if (activeTab === 'orcamentos') {
                     renderTable(allOrcamentos, 'orcamentos');
                 }
-                console.log("Dados de 'orçamentos' recebidos:", allOrcamentos);
+                console.log("Data for 'orcamentos' received:", allOrcamentos);
             }, (error) => {
-                console.error("Erro ao obter dados do Firestore (orçamentos):", error);
-                showModal(`Erro ao carregar orçamentos: ${error.message}`);
+                console.error("Error getting data from Firestore (orcamentos):", error);
+                showModal(`Error loading orçamentos: ${error.message}`);
             });
             
             const ordensDeServicoCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/ordensDeServico`);
@@ -269,20 +334,20 @@
                     const data = doc.data();
                     ordensDeServico.push({
                         id: doc.id,
-                        osNumber: data.osNumber,
+                        docNumber: data.osNumber,
                         clientName: data.clientName,
-                        osDate: data.osDate,
-                        status: data.status || 'Pendente',
+                        docDate: data.osDate,
+                        status: data.status || 'Pendente'
                     });
                 });
                 allOrdensDeServico = ordensDeServico;
                 if (activeTab === 'ordensDeServico') {
                     renderTable(allOrdensDeServico, 'ordensDeServico');
                 }
-                console.log("Dados de 'ordensDeServico' recebidos:", allOrdensDeServico);
+                console.log("Data for 'ordensDeServico' received:", allOrdensDeServico);
             }, (error) => {
-                console.error("Erro ao obter dados do Firestore (ordensDeServico):", error);
-                showModal(`Erro ao carregar ordens de serviço: ${error.message}`);
+                console.error("Error getting data from Firestore (ordensDeServico):", error);
+                showModal(`Error loading ordens de serviço: ${error.message}`);
             });
         }
 
@@ -290,36 +355,41 @@
             const tableBody = type === 'orcamentos' ? tableBodyOrcamentos : tableBodyOrdensDeServico;
             tableBody.innerHTML = '';
             if (data.length === 0) {
-                const emptyMessage = type === 'orcamentos' ? 'Nenhum orçamento encontrado.' : 'Nenhuma ordem de serviço encontrada.';
-                tableBody.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-gray-500">${emptyMessage}</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">Nenhum documento encontrado.</td></tr>`;
                 return;
             }
             data.forEach(item => {
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50 transition-colors duration-200';
-                if (type === 'orcamentos') {
-                    row.innerHTML = `
-                        <td class="py-4 px-6 text-sm font-medium text-gray-900">${item.osNumber || 'N/A'}</td>
-                        <td class="py-4 px-6 text-sm text-gray-500">${item.clientName || 'N/A'}</td>
-                        <td class="py-4 px-6 text-sm text-gray-500">${item.osDate || 'N/A'}</td>
-                        <td class="py-4 px-6 text-sm font-medium text-gray-900">R$ ${(item.total || 0).toFixed(2)}</td>
+                
+                let statusBadge = '';
+                if (type === 'ordensDeServico') {
+                    const statusColor = item.status === 'Concluído' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                    statusBadge = `
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColor}">
+                            ${item.status}
+                        </span>
                     `;
-                } else { // type === 'ordensDeServico'
-                    row.innerHTML = `
-                        <td class="py-4 px-6 text-sm font-medium text-gray-900">${item.osNumber || 'N/A'}</td>
-                        <td class="py-4 px-6 text-sm text-gray-500">${item.clientName || 'N/A'}</td>
-                        <td class="py-4 px-6 text-sm text-gray-500">${item.osDate || 'N/A'}</td>
-                        <td class="py-4 px-6 text-sm font-medium text-gray-900">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${item.status === 'Concluído' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
-                                ${item.status}
-                            </span>
-                        </td>
-                    `;
+                } else {
+                     statusBadge = `
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                           N/A
+                        </span>
+                     `;
                 }
+
+                row.innerHTML = `
+                    <td class="py-4 px-6 text-sm font-medium text-gray-900">${item.docNumber || 'N/A'}</td>
+                    <td class="py-4 px-6 text-sm text-gray-500">${item.clientName || 'N/A'}</td>
+                    <td class="py-4 px-6 text-sm text-gray-500">${item.docDate || 'N/A'}</td>
+                    <td class="py-4 px-6 text-sm font-medium text-gray-900">${statusBadge}</td>
+                    <td class="py-4 px-6 text-sm text-gray-500">
+                        <button class="text-blue-600 hover:text-blue-900 font-bold">Ver</button>
+                    </td>
+                `;
                 tableBody.appendChild(row);
             });
         }
     </script>
 </body>
 </html>
-
