@@ -545,8 +545,10 @@
             }
 
             showLoading();
-            const docsPath = `artifacts/${appId}/users/${userId}/${collectionName}`;
-            const docsRef = collection(db, docsPath);
+          //  const docsPath = `artifacts/${appId}/users/${userId}/${collectionName}`;
+             // Substitua a linha acima por esta
+const docsPath = `public/data/${collectionName}`;
+		const docsRef = collection(db, docsPath);
             
             console.log(`Buscando documentos na coleção: ${docsPath}`);
 
