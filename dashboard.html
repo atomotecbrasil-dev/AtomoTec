@@ -96,7 +96,7 @@
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { initializeApp, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -121,6 +121,9 @@
         const errorMessage = document.getElementById('errorMessage');
         const closeModalBtn = document.getElementById('closeModal');
         
+        // Define o nível de log para debug
+        setLogLevel('debug');
+        
         closeModalBtn.addEventListener('click', () => {
             errorModal.classList.add('hidden');
         });
@@ -131,19 +134,23 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log("DOM totalmente carregado. Iniciando a aplicação.");
             if (!firebaseConfig) {
                 showModal("Firebase não configurado. Por favor, forneça as configurações do Firebase.");
                 return;
             }
 
             try {
+                console.log("Inicializando o Firebase...");
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
 
                 if (initialAuthToken) {
+                    console.log("Token de autenticação inicial disponível. Entrando com token personalizado...");
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
+                    console.log("Token não disponível. Entrando anonimamente...");
                     await signInAnonymously(auth);
                 }
 
@@ -151,10 +158,12 @@
                     if (user) {
                         userId = user.uid;
                         authStatus.textContent = `Usuário autenticado. UID: ${userId}`;
+                        console.log(`Usuário autenticado. UID: ${userId}`);
                         setupRealtimeListeners(userId);
                     } else {
                         userId = null;
                         authStatus.textContent = 'Nenhum usuário autenticado.';
+                        console.log("Nenhum usuário autenticado.");
                         clearTables();
                     }
                 });
@@ -221,6 +230,15 @@
         }
 
         function setupRealtimeListeners(currentUserId) {
+            // Verifique se o userId é válido antes de tentar se conectar ao Firestore.
+            if (!currentUserId) {
+                console.error("userId não encontrado. Não é possível se conectar ao Firestore.");
+                showModal("Erro de autenticação: ID de usuário não encontrado.");
+                return;
+            }
+
+            console.log("Configurando listeners em tempo real para orçamentos e ordens de serviço...");
+            
             const orcamentosCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/orcamentos`);
             onSnapshot(orcamentosCollectionRef, (querySnapshot) => {
                 const orcamentos = [];
