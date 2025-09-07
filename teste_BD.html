@@ -35,107 +35,101 @@
             <pre id="dataContent" class="text-sm overflow-x-auto text-green-700 bg-green-100 p-3 rounded-md"></pre>
         </div>
     </div>
-
-    <!-- Firebase SDKs -->
+    
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        // Sua configuração do Firebase
+        const firebaseConfig = {
+          apiKey: "AIzaSyBUF-WA58TIK259hYy7HECYLRbhOyqR1pE",
+          authDomain: "atomotech-sistema.firebaseapp.com",
+          projectId: "atomotech-sistema",
+          storageBucket: "atomotech-sistema.firebasestorage.app",
+          messagingSenderId: "106133482163",
+          appId: "1:106133482163:web:0fdcd843ae3e778fe15ec6",
+          measurementId: "G-34WWR2929E"
+        };
+        
+        // Inicialize o Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // Adiciona um listener para ver logs de debug no console
-        setLogLevel('debug');
+        let userId = null;
+        let isAuthReady = false;
+        const appId = firebaseConfig.appId.split(':')[2];
 
-        // Referências aos elementos da interface
-        const saveButton = document.getElementById('saveButton');
+        // Referências do DOM
         const statusDiv = document.getElementById('status');
         const resultDiv = document.getElementById('result');
-        const dataContentPre = document.getElementById('dataContent');
+        const saveButton = document.getElementById('saveButton');
+        const dataContent = document.getElementById('dataContent');
 
-        let db;
-        let auth;
-        let userId;
-        let isAuthReady = false;
-
-        // Variáveis globais de ambiente que serão preenchidas no Canvas
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        // Dados de exemplo para o teste
+        // Dados de exemplo
         const mockData = {
-            orcamentoId: "040925-596",
-            cliente: "Rogerio Sena",
-            data: new Date().toISOString().split('T')[0],
-            total: 1670,
-            itens: [
-                { descricao: "RJ45", quantidade: 10, valorUnitario: 3, total: 30 },
-                { descricao: "Cabo 4 vias", quantidade: 2, valorUnitario: 120, total: 240 },
-                { descricao: "CAT5", quantidade: 4, valorUnitario: 350, total: 1400 }
-            ]
+            cliente: {
+                nome: "Cliente de Teste",
+                email: "teste@exemplo.com",
+                telefone: "11987654321"
+            },
+            data: new Date().toLocaleDateString('pt-BR'),
+            status: "Teste Concluído",
+            timestamp: new Date(),
+            userId: "teste_user",
+            type: "teste_orcamento"
         };
 
-        // Função de inicialização do Firebase e autenticação
-        async function initializeFirebase() {
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                    console.log("Autenticado com token personalizado.");
+        // Função de inicialização
+        function initializeFirebase() {
+            statusDiv.classList.remove('hidden');
+            statusDiv.innerHTML = `<p class="text-gray-600">Conectando ao Firebase...</p>`;
+
+            // Autenticação anônima
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    isAuthReady = true;
+                    statusDiv.innerHTML = `<p class="text-green-600">Conectado. Usuário: ${userId.substring(0, 8)}...</p>`;
+                    setupListener();
                 } else {
-                    await signInAnonymously(auth);
-                    console.log("Autenticado anonimamente.");
+                    signInAnonymously(auth).then((userCredential) => {
+                        userId = userCredential.user.uid;
+                        isAuthReady = true;
+                        statusDiv.innerHTML = `<p class="text-green-600">Conectado. Usuário anônimo: ${userId.substring(0, 8)}...</p>`;
+                        setupListener();
+                    }).catch((error) => {
+                        console.error("Erro na autenticação anônima:", error);
+                        statusDiv.innerHTML = `<p class="text-red-600">Erro de autenticação: ${error.message}</p>`;
+                    });
                 }
-
-                userId = auth.currentUser?.uid || crypto.randomUUID();
-                isAuthReady = true;
-
-                // Mostra o ID do usuário para depuração
-                console.log("ID do Usuário:", userId);
-                
-                // Exibe uma mensagem de status inicial
-                statusDiv.classList.remove('hidden');
-                statusDiv.innerHTML = `<p>Firebase inicializado. ID do usuário: <span class="font-bold text-gray-900 break-all">${userId}</span></p>`;
-                
-                setupRealtimeListener();
-
-            } catch (error) {
-                console.error("Erro ao inicializar o Firebase ou autenticar:", error);
-                statusDiv.classList.remove('hidden');
-                statusDiv.innerHTML = `<p class="text-red-600">Erro ao inicializar Firebase: ${error.message}</p>`;
-            }
+            });
         }
 
-        // Configura o ouvinte em tempo real para a coleção de orçamentos
-        function setupRealtimeListener() {
-            if (!isAuthReady || !db || !userId) {
-                console.log("Aguardando inicialização do Firebase e autenticação.");
-                return;
-            }
-
-            // O caminho da coleção segue a estrutura de dados privados do Canvas
+        // Configura o listener para a coleção de testes
+        function setupListener() {
             const collectionPath = `/artifacts/${appId}/users/${userId}/orcamentos`;
-            const q = query(collection(db, collectionPath));
+            const collectionRef = collection(db, collectionPath);
             
-            // onSnapshot é a forma recomendada de ler dados em tempo real
-            onSnapshot(q, (querySnapshot) => {
-                const documents = [];
-                querySnapshot.forEach((doc) => {
-                    documents.push({ id: doc.id, ...doc.data() });
-                });
-
-                if (documents.length > 0) {
-                    // Se houver documentos, mostra o último gravado
-                    const lastDoc = documents[documents.length - 1];
-                    resultDiv.classList.remove('hidden');
-                    dataContentPre.textContent = JSON.stringify(lastDoc, null, 2);
-                    statusDiv.innerHTML = `<p class="text-green-600">Dados recebidos com sucesso!</p>`;
+            // Ouve as mudanças em tempo real na coleção
+            onSnapshot(collectionRef, (snapshot) => {
+                const changes = snapshot.docChanges();
+                if (changes.length > 0) {
+                    changes.forEach((change) => {
+                        if (change.type === "added") {
+                            // Um novo documento foi adicionado
+                            const newDoc = change.doc.data();
+                            console.log("Novo documento recebido do Firestore:", newDoc);
+                            
+                            resultDiv.classList.remove('hidden');
+                            dataContent.textContent = JSON.stringify(newDoc, null, 2);
+                            
+                            statusDiv.innerHTML = `<p class="text-green-600">Documento gravado com sucesso no Firestore. Clique no botão para gravar um novo documento.</p>`;
+                        }
+                    });
                 } else {
-                    // Se a coleção estiver vazia, apenas mostra que está pronta para gravação
-                    resultDiv.classList.add('hidden');
-                    statusDiv.innerHTML = `<p>Conectado ao Firestore. Clique no botão para gravar um documento.</p>`;
+                     statusDiv.innerHTML = `<p class="text-gray-600">Nenhum documento encontrado na sua coleção no Firestore. Clique no botão para gravar um documento.</p>`;
                 }
             }, (error) => {
                 console.error("Erro ao ouvir a coleção:", error);
@@ -145,7 +139,7 @@
 
         // Lógica para gravar o documento
         async function saveDocument() {
-            if (!isAuthReady || !db) {
+            if (!isAuthReady) {
                 statusDiv.innerHTML = `<p class="text-orange-600">Aguardando a inicialização do Firebase...</p>`;
                 return;
             }

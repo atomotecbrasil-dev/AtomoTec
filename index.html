@@ -23,10 +23,8 @@
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
-    <!-- Header -->
     <header class="header text-white p-4 shadow-lg fixed top-0 left-0 right-0 z-50">
         <div class="container mx-auto flex items-center justify-between">
-            <!-- Logo e Nome da Empresa -->
             <div class="flex items-center">
                 <img src="logo.png" alt="AtomoTech Logo" class="h-8 mr-2">
                 <h1 class="text-3xl font-bold">AtomoTech</h1>
@@ -34,7 +32,6 @@
             
             <div class="flex items-center space-x-4">
                 <span id="user-status" class="text-sm font-medium">Conectando...</span>
-                <!-- Botão de Testar Conexão -->
                 <a href="teste_BD.html" class="bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-medium py-1 px-2 rounded-full transition-colors duration-200">
                     Testar Conexão
                 </a>
@@ -42,113 +39,108 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-1 mt-20 p-4 sm:p-6 lg:p-8">
         <div class="container mx-auto">
             <h2 class="text-2xl font-semibold mb-6 text-gray-800">Painel de Gestão</h2>
 
-            <!-- Botões de Ação -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-lg shadow-md flex flex-col items-center text-center">
-                    <i class="fa-solid fa-file-invoice-dollar text-4xl text-green-600 mb-4"></i>
-                    <h3 class="text-xl font-semibold mb-2">Novo Orçamento</h3>
-                    <p class="text-gray-600 mb-4">Crie e envie orçamentos profissionais para seus clientes.</p>
-                    <button onclick="window.location.href = 'orcamento.html';" class="px-6 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition-colors">
-                        Criar Orçamento
-                    </button>
-                </div>
-
-                <div class="bg-white p-6 rounded-lg shadow-md flex flex-col items-center text-center">
-                    <i class="fa-solid fa-tools text-4xl text-blue-600 mb-4"></i>
-                    <h3 class="text-xl font-semibold mb-2">Nova Ordem de Serviço</h3>
-                    <p class="text-gray-600 mb-4">Gerencie serviços e colete assinaturas digitais.</p>
-                    <button onclick="window.location.href = 'nova_os.html';" class="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">
-                        Criar Ordem de Serviço
-                    </button>
-                </div>
-
-                <div class="bg-white p-6 rounded-lg shadow-md flex flex-col items-center text-center">
-                    <i class="fa-solid fa-list-check text-4xl text-yellow-600 mb-4"></i>
-                    <h3 class="text-xl font-semibold mb-2">Gerenciar Documentos</h3>
-                    <p class="text-gray-600 mb-4">Visualize e edite todas as suas ordens de serviço e orçamentos.</p>
-                    <button onclick="window.location.href = 'dashboard.html';" class="px-6 py-2 bg-yellow-600 text-white rounded-lg shadow hover:bg-yellow-700 transition-colors">
-                        Gerenciar
-                    </button>
-                </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <a href="nova_os.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col items-center text-center">
+                    <div class="bg-blue-100 text-blue-600 rounded-full p-4 mb-4">
+                        <i class="fas fa-plus text-3xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">Nova OS</h3>
+                    <p class="text-gray-600 text-sm mt-1">Crie uma nova Ordem de Serviço.</p>
+                </a>
+                <a href="orcamento.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col items-center text-center">
+                    <div class="bg-green-100 text-green-600 rounded-full p-4 mb-4">
+                        <i class="fas fa-file-invoice-dollar text-3xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">Novo Orçamento</h3>
+                    <p class="text-gray-600 text-sm mt-1">Gere um novo documento de orçamento.</p>
+                </a>
+                <a href="dashboard.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col items-center text-center">
+                    <div class="bg-purple-100 text-purple-600 rounded-full p-4 mb-4">
+                        <i class="fas fa-search text-3xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">Gerenciar Documentos</h3>
+                    <p class="text-gray-600 text-sm mt-1">Visualize e gerencie orçamentos e OS.</p>
+                </a>
+                <a href="#" class="bg-white p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col items-center text-center">
+                    <div class="bg-orange-100 text-orange-600 rounded-full p-4 mb-4">
+                        <i class="fas fa-cog text-3xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800">Configurações</h3>
+                    <p class="text-gray-600 text-sm mt-1">Ajuste as configurações do sistema.</p>
+                </a>
             </div>
-
-            <!-- Seção de Lista de Documentos (escondida por padrão, agora será em dashboard.html) -->
-            <div id="list-view" class="view hidden">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Documentos Recentes</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <ul id="documents-list">
-                        <p class="text-gray-500">Nenhum documento encontrado.</p>
-                    </ul>
-                </div>
-            </div>
-
         </div>
     </main>
+    
+    <footer class="bg-gray-800 text-white p-4 text-center mt-auto">
+        <p>&copy; 2024 AtomoTech. Todos os direitos reservados.</p>
+    </footer>
 
-    <!-- Modal para Mensagens -->
-    <div id="message-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+    <div id="message-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-lg">
-            <h3 id="message-title" class="text-lg font-bold mb-2"></h3>
-            <p id="message-body" class="mb-4"></p>
-            <div class="flex justify-end">
-                <button onclick="closeModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">OK</button>
-            </div>
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800"></h3>
+            <p id="modal-text" class="text-gray-700 mb-4"></p>
+            <button onclick="closeModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition-colors">Fechar</button>
         </div>
     </div>
-    
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        let db, authInstance;
-        let userId = null;
-        
-        // Configuração do Firebase com suas credenciais
-        const firebaseConfig = {
-            apiKey: "AIzaSyBD5NJXU1YBb1tbWAtaO8tyx21x5UwDs58",
-            authDomain: "atomotech-gestao.firebaseapp.com",
-            projectId: "atomotech-gestao",
-            storageBucket: "atomotech-gestao.firebasestorage.app",
-            messagingSenderId: "307660458127",
-            appId: "1:307660458127:web:853844133b6cf7c7e788fa",
-            measurementId: "G-WB5BZPR532"
-        };
-        
-        const appId = firebaseConfig.projectId;
 
-        // --- Funções de Modal para Mensagens ---
-        function showMessage(title, body) {
-            document.getElementById('message-title').textContent = title;
-            document.getElementById('message-body').textContent = body;
-            document.getElementById('message-modal').classList.remove('hidden');
-        }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         
+        // Sua configuração do Firebase
+        const firebaseConfig = {
+          apiKey: "AIzaSyBUF-WA58TIK259hYy7HECYLRbhOyqR1pE",
+          authDomain: "atomotech-sistema.firebaseapp.com",
+          projectId: "atomotech-sistema",
+          storageBucket: "atomotech-sistema.firebasestorage.app",
+          messagingSenderId: "106133482163",
+          appId: "1:106133482163:web:0fdcd843ae3e778fe15ec6",
+          measurementId: "G-34WWR2929E"
+        };
+
+        // Inicialize o Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let userId = null;
+        let isAuthReady = false;
+
+        function showMessage(title, text, type = 'info') {
+            const modal = document.getElementById('message-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalText = document.getElementById('modal-text');
+            
+            modalTitle.textContent = title;
+            modalText.textContent = text;
+            modal.classList.remove('hidden');
+        }
+
         function closeModal() {
             document.getElementById('message-modal').classList.add('hidden');
         }
         
-        // --- Inicialização do Firebase ---
         function initializeFirebase() {
             try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                authInstance = getAuth(app);
-                
-                onAuthStateChanged(authInstance, (user) => {
+                // Tenta autenticação anônima
+                onAuthStateChanged(auth, (user) => {
                     if (user) {
+                        // O usuário está autenticado
                         userId = user.uid;
-                        document.getElementById('user-status').textContent = `Conectado como ${userId.substring(0, 8)}...`;
-                        console.log("Usuário autenticado:", userId);
+                        isAuthReady = true;
+                        document.getElementById('user-status').textContent = `Conectado: ${userId.substring(0, 8)}...`;
                     } else {
-                        signInAnonymously(authInstance).then(() => {
-                            userId = authInstance.currentUser.uid;
-                            document.getElementById('user-status').textContent = `Conectado como ${userId.substring(0, 8)}...`;
+                        // Não há usuário, tente autenticar anonimamente
+                        signInAnonymously(auth).then((userCredential) => {
+                            userId = userCredential.user.uid;
+                            isAuthReady = true;
+                            document.getElementById('user-status').textContent = `Conectado: ${userId.substring(0, 8)}...`;
                         }).catch((error) => {
                             console.error("Erro na autenticação anônima:", error);
                             showMessage('Erro de Conexão', 'Não foi possível conectar ao sistema. Tente novamente.');
@@ -184,4 +176,3 @@
     </script>
 </body>
 </html>
-
